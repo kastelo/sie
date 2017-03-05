@@ -1,0 +1,24 @@
+#FLAGGA 0
+#PROGRAM "SpeedLedger e-bokf”ring" "2.0"
+#FORMAT PC8
+#GEN 20170305 "Jakob Borg"
+#SIETYP 4
+#ORGNR 123456-7890
+#FNAMN "Kastelo AB"
+#RAR 0 20160101 20161231
+#KPTYP EUBAS97
+#KONTO 1110 "Byggnader"
+#KTYP 1110 T
+#KONTO 1119 "Ack avskrivn byggnader"
+#KTYP 1119 T
+
+#VER A 1 20160102 "Aktiekapital" 20160103
+{
+#TRANS 1930 {} 50000.00 20160101 "Aktiekapital"
+#TRANS 2081 {} -50000.00 20160101 "Aktiekapital"
+}
+#VER A 2 20160829 "F”rs„kring F" 20160830
+{
+#TRANS 1930 {} -1957.00 20160829 "F”rs„kring F"
+#TRANS 6310 {} 1957.00 20160829 "F”rs„kring F"
+}
