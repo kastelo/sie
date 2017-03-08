@@ -88,7 +88,7 @@ func Parse(r io.Reader) (*Document, error) {
 			}
 
 		case "#TRANS":
-			amount, ok := big.NewRat(0, 1).SetString(words[3])
+			amount, ok := new(big.Rat).SetString(words[3])
 			if !ok {
 				return nil, fmt.Errorf("unable to parse %s", words[3])
 			}
