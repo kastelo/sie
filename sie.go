@@ -1,4 +1,4 @@
-package sie
+package sie // import "kastelo.io/sie"
 
 import (
 	"math/big"
