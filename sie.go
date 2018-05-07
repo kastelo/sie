@@ -1,4 +1,4 @@
-package sie // import "kastelo.io/sie"
+package sie
 
 import (
 	"math/big"
@@ -24,6 +24,8 @@ type Account struct {
 	ID          string
 	Type        string
 	Description string
+	InBalance   *big.Rat
+	OutBalance  *big.Rat
 }
 
 type Entry struct {

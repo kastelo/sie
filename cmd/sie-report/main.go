@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kingpin"
-	"kastelo.io/sie"
+	"github.com/kastelo/sie"
 )
 
 func main() {
@@ -44,6 +44,13 @@ func balances(r io.Reader) (*sie.Document, map[string]*big.Rat) {
 	}
 
 	balances := make(map[string]*big.Rat)
+	for _, acc := range doc.Accounts {
+		bal := &big.Rat{}
+		if acc.InBalance != nil {
+			bal.Add(bal, acc.InBalance)
+			balances[acc.ID] = bal
+		}
+	}
 	for _, entry := range doc.Entries {
 		for _, tran := range entry.Transactions {
 			bal, ok := balances[tran.Account]

@@ -7,10 +7,9 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-
 	"sort"
 
-	"kastelo.io/sie"
+	"github.com/kastelo/sie"
 )
 
 func main() {
@@ -32,9 +31,9 @@ func writeAccounts(dir string, doc *sie.Document) {
 		log.Fatal(err)
 	}
 	cw := csv.NewWriter(fd)
-	cw.Write([]string{"AccountID", "Type", "Description"})
+	cw.Write([]string{"AccountID", "Type", "Description", "InBalance", "OutBalance"})
 	for _, acc := range doc.Accounts {
-		cw.Write([]string{acc.ID, acc.Type, acc.Description})
+		cw.Write([]string{acc.ID, acc.Type, acc.Description, formatRat(acc.InBalance), formatRat(acc.OutBalance)})
 	}
 	cw.Flush()
 	fd.Close()
@@ -61,6 +60,14 @@ func writeTransactions(dir string, doc *sie.Document) {
 			tot := totals[tr.Account]
 			if tot == nil {
 				tot = new(big.Rat)
+				for _, acc := range doc.Accounts {
+					if acc.ID == tr.Account {
+						if acc.InBalance != nil {
+							tot.Add(tot, acc.InBalance)
+						}
+						break
+					}
+				}
 				totals[tr.Account] = tot
 			}
 			tot.Add(tot, tr.Amount)
@@ -70,12 +77,19 @@ func writeTransactions(dir string, doc *sie.Document) {
 				en.Type,
 				en.Description,
 				tr.Account,
-				tr.Amount.FloatString(2),
-				tot.FloatString(2),
+				formatRat(tr.Amount),
+				formatRat(tot),
 			}
 			cw.Write(row)
 		}
 	}
 	cw.Flush()
 	fd.Close()
+}
+
+func formatRat(rat *big.Rat) string {
+	if rat == nil {
+		return "0.00"
+	}
+	return rat.FloatString(2)
 }

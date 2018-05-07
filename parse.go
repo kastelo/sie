@@ -71,9 +71,33 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.Accounts = append(doc.Accounts, acc)
 
 		case "#KTYP":
-			acc := doc.Accounts[accountCache[words[1]]]
-			acc.Type = words[2]
-			doc.Accounts[accountCache[words[1]]] = acc
+			idx, ok := accountCache[words[1]]
+			if !ok {
+				return nil, fmt.Errorf("unknown account %q", words[1])
+			}
+			doc.Accounts[idx].Type = words[2]
+
+		case "#IB":
+			amount, ok := new(big.Rat).SetString(words[3])
+			if !ok {
+				return nil, fmt.Errorf("unable to parse %s", words[3])
+			}
+			idx, ok := accountCache[words[2]]
+			if !ok {
+				return nil, fmt.Errorf("unknown account %q", words[2])
+			}
+			doc.Accounts[idx].InBalance = amount
+
+		case "#UB":
+			amount, ok := new(big.Rat).SetString(words[3])
+			if !ok {
+				return nil, fmt.Errorf("unable to parse %s", words[3])
+			}
+			idx, ok := accountCache[words[2]]
+			if !ok {
+				return nil, fmt.Errorf("unknown account %q", words[2])
+			}
+			doc.Accounts[idx].OutBalance = amount
 
 		case "#VER":
 			date, err := time.Parse("20060102", words[3])

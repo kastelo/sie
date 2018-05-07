@@ -21,8 +21,21 @@ func TestParse(t *testing.T) {
 		CompanyName:    "Kastelo AB",
 		AccountPlan:    "EUBAS97",
 		Accounts: []Account{
-			{ID: "1110", Type: "T", Description: "Byggnader"},
-			{ID: "1119", Type: "T", Description: "Ack avskrivn byggnader"},
+			{
+				ID: "1930", Type: "T", Description: "Bankkonto",
+				InBalance:  big.NewRat(0, 1),
+				OutBalance: big.NewRat(48043, 1),
+			},
+			{
+				ID: "2081", Type: "S", Description: "Aktiekapital",
+				InBalance:  big.NewRat(0, 1),
+				OutBalance: big.NewRat(-50000, 1),
+			},
+			{
+				ID: "6310", Type: "K", Description: "Försäkringar",
+				InBalance:  big.NewRat(0, 1),
+				OutBalance: big.NewRat(1957, 1),
+			},
 		},
 		Entries: []Entry{
 			{
