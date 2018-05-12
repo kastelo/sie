@@ -18,6 +18,8 @@ type Document struct {
 	AccountPlan    string
 	Accounts       []Account
 	Entries        []Entry
+	Starts         time.Time
+	Ends           time.Time
 }
 
 type Account struct {

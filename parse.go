@@ -110,6 +110,12 @@ func Parse(r io.Reader) (*Document, error) {
 				Date:        date,
 				Description: words[4],
 			}
+			if doc.Starts.IsZero() || doc.Starts.After(date) {
+				doc.Starts = date
+			}
+			if doc.Ends.IsZero() || doc.Ends.Before(date) {
+				doc.Ends = date
+			}
 
 		case "#TRANS":
 			amount, ok := new(big.Rat).SetString(words[3])
