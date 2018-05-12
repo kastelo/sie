@@ -215,14 +215,16 @@ func fmtAccountMonths(id, descr string, starts, ends time.Time, bal *balance) {
 	fmt.Printf(formatStr, id, descr)
 	t := starts
 	for t.Before(ends) {
-		val := "·"
+		val := "· "
 		if v := bal.months[t.Format("2006-01")]; v != nil {
-			val = v.FloatString(0)
+			if str := v.FloatString(0); str != "0" {
+				val = str
+			}
 		}
 		fmt.Printf(" %8s", val)
 		t = t.AddDate(0, 1, 0)
 	}
-	fmt.Printf(" %8s", bal.total.FloatString(0))
+	fmt.Printf(" | %8s", bal.total.FloatString(0))
 	fmt.Printf("\n")
 }
 
@@ -233,7 +235,7 @@ func headerMonths(hdr string, starts, ends time.Time) {
 		fmt.Printf(" %8s", t.Format("2006-01"))
 		t = t.AddDate(0, 1, 0)
 	}
-	fmt.Printf(" %8s", "Total")
+	fmt.Printf(" | %-8s", "Total")
 	fmt.Printf("\n")
 }
 
@@ -241,9 +243,9 @@ func dashes(starts, ends time.Time) {
 	fmt.Printf("%-55s", "")
 	t := starts
 	for t.Before(ends) {
-		fmt.Printf(" %8s", "-------")
+		fmt.Printf("---------")
 		t = t.AddDate(0, 1, 0)
 	}
-	fmt.Printf(" %8s", "-------")
+	fmt.Printf("-+---------")
 	fmt.Printf("\n")
 }
