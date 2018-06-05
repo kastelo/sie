@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kingpin"
-	"github.com/kastelo/sie"
+	"kastelo.io/int/sie"
 )
 
 func main() {

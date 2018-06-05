@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/kastelo/sie"
+	"kastelo.io/int/sie"
 )
 
 func main() {
