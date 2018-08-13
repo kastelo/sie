@@ -22,8 +22,8 @@
 
 #VER A 1 20160102 "Aktiekapital" 20160103
 {
-#TRANS 1930 {} 50000.00 20160101 "Aktiekapital"
-#TRANS 2081 {} -50000.00 20160101 "Aktiekapital"
+#TRANS 1930 {2 "FOO"} 50000.00 20160101 "Aktiekapital"
+#TRANS 2081 {3 "BAR"} -50000.00 20160101 "Aktiekapital"
 }
 #VER A 2 20160829 "F”rs„kring F" 20160830
 {

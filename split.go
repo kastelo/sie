@@ -29,11 +29,15 @@ func scanWords(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		}
 	}
 
-	// Check for leading quote
+	// Check for leading quote or bracket
 	inQuote := false
+	inBrackets := false
 	if r, width := utf8.DecodeRune(data[start:]); r == '"' {
 		start += width
 		inQuote = true
+	} else if r == '{' {
+		start += width
+		inBrackets = true
 	}
 
 	// Scan until space or end quote, marking end of word.
@@ -45,8 +49,17 @@ func scanWords(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			inEscape = true
 			continue
 		}
-		if !inQuote && isSpace(r) || !inEscape && inQuote && r == '"' {
+		if !inQuote && !inBrackets && isSpace(r) {
 			return i + width, data[start:i], nil
+		}
+		if !inEscape && !inQuote && inBrackets && r == '}' {
+			return i + width, data[start:i], nil
+		}
+		if !inEscape && inQuote && r == '"' {
+			if !inBrackets {
+				return i + width, data[start:i], nil
+			}
+			inQuote = false
 		}
 		inEscape = false
 	}

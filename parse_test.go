@@ -1,7 +1,7 @@
 package sie
 
 import (
-	"fmt"
+	"encoding/json"
 	"math/big"
 	"os"
 	"testing"
@@ -20,6 +20,8 @@ func TestParse(t *testing.T) {
 		OrgNo:          "123456-7890",
 		CompanyName:    "Kastelo AB",
 		AccountPlan:    "EUBAS97",
+		Starts:         time.Date(2016, 1, 2, 0, 0, 0, 0, time.UTC),
+		Ends:           time.Date(2016, 8, 29, 0, 0, 0, 0, time.UTC),
 		Accounts: []Account{
 			{
 				ID: "1930", Type: "T", Description: "Bankkonto",
@@ -66,10 +68,18 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	docStr := fmt.Sprintf("%+v", doc)
-	expStr := fmt.Sprintf("%+v", expected)
+	docStr := jsons(doc)
+	expStr := jsons(expected)
 
 	if docStr != expStr {
 		t.Errorf("mismatch\n%s\n%s", docStr, expStr)
 	}
+}
+
+func jsons(v interface{}) string {
+	bs, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(bs)
 }

@@ -80,7 +80,7 @@ func Parse(r io.Reader) (*Document, error) {
 		case "#IB":
 			amount, ok := new(big.Rat).SetString(words[3])
 			if !ok {
-				return nil, fmt.Errorf("unable to parse %s", words[3])
+				return nil, fmt.Errorf("unable to parse %s (%q)", words[3], sc.Text())
 			}
 			idx, ok := accountCache[words[2]]
 			if !ok {
@@ -91,7 +91,7 @@ func Parse(r io.Reader) (*Document, error) {
 		case "#UB":
 			amount, ok := new(big.Rat).SetString(words[3])
 			if !ok {
-				return nil, fmt.Errorf("unable to parse %s", words[3])
+				return nil, fmt.Errorf("unable to parse %s (%q)", words[3], sc.Text())
 			}
 			idx, ok := accountCache[words[2]]
 			if !ok {
@@ -120,7 +120,7 @@ func Parse(r io.Reader) (*Document, error) {
 		case "#TRANS":
 			amount, ok := new(big.Rat).SetString(words[3])
 			if !ok {
-				return nil, fmt.Errorf("unable to parse %s", words[3])
+				return nil, fmt.Errorf("unable to parse %s (%q)", words[3], sc.Text())
 			}
 			trans := Transaction{
 				Account: words[1],

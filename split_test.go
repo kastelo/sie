@@ -28,6 +28,9 @@ func TestSplitWords(t *testing.T) {
 		}, {
 			`one "two \" three\\" "four"`,
 			[]string{"one", "two \" three\\", "four"},
+		}, {
+			`one two {three \"four\"} "five"`,
+			[]string{"one", "two", "three \"four\"", "five"},
 		},
 	}
 
