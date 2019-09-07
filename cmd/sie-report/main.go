@@ -12,7 +12,7 @@ import (
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/alecthomas/kingpin"
-	"kastelo.io/int/sie"
+	"github.com/kastelo/sie"
 )
 
 func main() {
@@ -156,7 +156,7 @@ func resultReport(doc *sie.Document, accountBalance map[string]*balance) {
 			dashes(doc.Starts, doc.Ends)
 			state = 1
 
-		case state != 2 && strings.HasPrefix(acc.ID, "5"):
+		case state != 2 && strings.HasPrefix(acc.ID, "4"):
 			dashes(doc.Starts, doc.Ends)
 			fmtAccountMonths("", "Nettoomsättning", doc.Starts, doc.Ends, revenue)
 			fmt.Println()
@@ -242,7 +242,7 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 			startRow = row
 			state = 1
 
-		case state != 2 && strings.HasPrefix(acc.ID, "5"):
+		case state != 2 && strings.HasPrefix(acc.ID, "4"):
 			xlsxSumMonths(xlsx, row, "", doc.Starts, doc.Ends, startRow)
 			sumRows = append(sumRows, row)
 			row++

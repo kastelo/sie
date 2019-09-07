@@ -40,12 +40,16 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.Format = words[1]
 
 		case "#GEN":
-			date, err := time.Parse("20060102", words[1])
-			if err != nil {
-				return nil, err
+			if len(words) >= 2 {
+				date, err := time.Parse("20060102", words[1])
+				if err != nil {
+					return nil, err
+				}
+				doc.GeneratedAt = date
 			}
-			doc.GeneratedAt = date
-			doc.GeneratedBy = words[2]
+			if len(words) >= 3 {
+				doc.GeneratedBy = words[2]
+			}
 
 		case "#SIETYP":
 			doc.Type = words[1]
