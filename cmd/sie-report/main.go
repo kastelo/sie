@@ -126,7 +126,9 @@ func vatReport(doc *sie.Document, accountBalance map[string]*balance) {
 
 		vat.Add(&vat, bal.total)
 
-		fmtAccount(acc.ID, acc.Description, bal.total)
+		if bal.total.Cmp(big.NewRat(0, 1)) != 0 {
+			fmtAccount(acc.ID, acc.Description, bal.total)
+		}
 	}
 
 	fmt.Println("\nSUMMA")
@@ -292,11 +294,17 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 
 func fmtAccount(id, descr string, val *big.Rat) {
 	const formatStr = "  %4s %-48s %10s\n"
+	if len(descr) > 48 {
+		descr = descr[:48]
+	}
 	fmt.Printf(formatStr, id, descr, val.FloatString(2))
 }
 
 func fmtAccountMonths(id, descr string, starts, ends time.Time, bal *balance) {
 	const formatStr = "  %4s %-48s"
+	if len(descr) > 48 {
+		descr = descr[:48]
+	}
 	fmt.Printf(formatStr, id, descr)
 	t := starts
 	for t.Before(ends) {

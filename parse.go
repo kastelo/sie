@@ -82,6 +82,9 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.Accounts[idx].Type = words[2]
 
 		case "#IB":
+			if words[1] != "0" {
+				continue
+			}
 			amount, ok := new(big.Rat).SetString(words[3])
 			if !ok {
 				return nil, fmt.Errorf("unable to parse %s (%q)", words[3], sc.Text())
