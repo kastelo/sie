@@ -202,7 +202,11 @@ func resultReport(doc *sie.Document, accountBalance map[string]*balance) {
 		fmtAccountMonths(acc.ID, acc.Description, doc.Starts, doc.Ends, bal)
 	}
 	dashes(doc.Starts, doc.Ends)
-	fmtAccountMonths("", "Summa finansiella poster", doc.Starts, doc.Ends, financials)
+	if state == 3 {
+		fmtAccountMonths("", "Summa personalkostnader", doc.Starts, doc.Ends, personnel)
+	} else if state == 4 {
+		fmtAccountMonths("", "Summa finansiella poster", doc.Starts, doc.Ends, financials)
+	}
 	fmt.Println()
 	fmt.Println()
 	headerMonths("RESULTAT", doc.Starts, doc.Ends)
