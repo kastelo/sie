@@ -2,10 +2,11 @@ package sie
 
 import (
 	"encoding/json"
-	"math/big"
 	"os"
 	"testing"
 	"time"
+
+	godiffpatch "github.com/sourcegraph/go-diff-patch"
 )
 
 func TestParse(t *testing.T) {
@@ -25,18 +26,18 @@ func TestParse(t *testing.T) {
 		Accounts: []Account{
 			{
 				ID: "1930", Type: "T", Description: "Bankkonto",
-				InBalance:  big.NewRat(0, 1),
-				OutBalance: big.NewRat(48043, 1),
+				InBalance:  0,
+				OutBalance: 48043 * 100,
 			},
 			{
 				ID: "2081", Type: "S", Description: "Aktiekapital",
-				InBalance:  big.NewRat(0, 1),
-				OutBalance: big.NewRat(-50000, 1),
+				InBalance:  0,
+				OutBalance: -50000 * 100,
 			},
 			{
 				ID: "6310", Type: "K", Description: "Försäkringar",
-				InBalance:  big.NewRat(0, 1),
-				OutBalance: big.NewRat(1957, 1),
+				InBalance:  0,
+				OutBalance: 1957 * 100,
 			},
 		},
 		Entries: []Entry{
@@ -46,8 +47,8 @@ func TestParse(t *testing.T) {
 				Date:        time.Date(2016, 1, 2, 0, 0, 0, 0, time.UTC),
 				Description: "Aktiekapital",
 				Transactions: []Transaction{
-					{Account: "1930", Amount: big.NewRat(50000, 1)},
-					{Account: "2081", Amount: big.NewRat(-50000, 1)},
+					{Account: "1930", Amount: 50000 * 100},
+					{Account: "2081", Amount: -50000 * 100},
 				},
 			}, {
 				Type:        "A",
@@ -55,8 +56,8 @@ func TestParse(t *testing.T) {
 				Date:        time.Date(2016, 8, 29, 0, 0, 0, 0, time.UTC),
 				Description: "Försäkring F",
 				Transactions: []Transaction{
-					{Account: "1930", Amount: big.NewRat(-1957, 1)},
-					{Account: "6310", Amount: big.NewRat(1957, 1)},
+					{Account: "1930", Amount: -1957 * 100},
+					{Account: "6310", Amount: 1957 * 100},
 				},
 			},
 		},
@@ -72,7 +73,7 @@ func TestParse(t *testing.T) {
 	expStr := jsons(expected)
 
 	if docStr != expStr {
-		t.Errorf("mismatch\n%s\n%s", docStr, expStr)
+		t.Error(godiffpatch.GeneratePatch("rendered", string(expStr), string(docStr)))
 	}
 }
 

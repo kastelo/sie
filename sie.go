@@ -1,9 +1,33 @@
 package sie
 
 import (
-	"math/big"
+	"fmt"
 	"time"
 )
+
+type Decimal int64 // "cents"
+
+func (d Decimal) String() string {
+	if d%100 == 0 {
+		return d.FloatString(0)
+	}
+	return d.FloatString(2)
+}
+
+func (d Decimal) FloatString(decimals int) string {
+	if decimals <= 0 {
+		return fmt.Sprintf("%d", d/100)
+	}
+	return fmt.Sprintf("%d.%0*d", d/100, decimals, d%100)
+}
+
+func (d Decimal) Float64() float64 {
+	return float64(d) / 100
+}
+
+func (d Decimal) MarshalJSON() ([]byte, error) {
+	return []byte(d.String()), nil
+}
 
 type Document struct {
 	Flag           int
@@ -26,8 +50,8 @@ type Account struct {
 	ID          string
 	Type        string
 	Description string
-	InBalance   *big.Rat
-	OutBalance  *big.Rat
+	InBalance   Decimal
+	OutBalance  Decimal
 }
 
 type Entry struct {
@@ -40,5 +64,5 @@ type Entry struct {
 
 type Transaction struct {
 	Account string
-	Amount  *big.Rat
+	Amount  Decimal
 }

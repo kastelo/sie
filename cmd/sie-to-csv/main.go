@@ -4,12 +4,11 @@ import (
 	"encoding/csv"
 	"flag"
 	"log"
-	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
 
-	"github.com/kastelo/sie"
+	"kastelo.dev/sie"
 )
 
 func main() {
@@ -33,14 +32,14 @@ func writeAccounts(dir string, doc *sie.Document) {
 	cw := csv.NewWriter(fd)
 	cw.Write([]string{"AccountID", "Type", "Description", "InBalance", "OutBalance"})
 	for _, acc := range doc.Accounts {
-		cw.Write([]string{acc.ID, acc.Type, acc.Description, formatRat(acc.InBalance), formatRat(acc.OutBalance)})
+		cw.Write([]string{acc.ID, acc.Type, acc.Description, acc.InBalance.String(), acc.OutBalance.String()})
 	}
 	cw.Flush()
 	fd.Close()
 }
 
 func writeTransactions(dir string, doc *sie.Document) {
-	totals := map[string]*big.Rat{}
+	totals := map[string]sie.Decimal{}
 	fd, err := os.Create(filepath.Join(dir, "transactions.csv"))
 	if err != nil {
 		log.Fatal(err)
@@ -58,38 +57,28 @@ func writeTransactions(dir string, doc *sie.Document) {
 	for _, en := range doc.Entries {
 		for _, tr := range en.Transactions {
 			tot := totals[tr.Account]
-			if tot == nil {
-				tot = new(big.Rat)
+			if tot == 0 {
 				for _, acc := range doc.Accounts {
 					if acc.ID == tr.Account {
-						if acc.InBalance != nil {
-							tot.Add(tot, acc.InBalance)
-						}
+						tot += acc.InBalance
 						break
 					}
 				}
 				totals[tr.Account] = tot
 			}
-			tot.Add(tot, tr.Amount)
+			tot += tr.Amount
 			row := []string{
 				en.ID,
 				en.Date.Format("2006-01-02"),
 				en.Type,
 				en.Description,
 				tr.Account,
-				formatRat(tr.Amount),
-				formatRat(tot),
+				tr.Amount.String(),
+				tot.String(),
 			}
 			cw.Write(row)
 		}
 	}
 	cw.Flush()
 	fd.Close()
-}
-
-func formatRat(rat *big.Rat) string {
-	if rat == nil {
-		return "0.00"
-	}
-	return rat.FloatString(2)
 }

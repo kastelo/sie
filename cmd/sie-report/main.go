@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/big"
 	"os"
 	"strconv"
 	"strings"
@@ -12,7 +11,8 @@ import (
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/alecthomas/kingpin"
-	"github.com/kastelo/sie"
+
+	"kastelo.dev/sie"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	xlsxFile := cmdXLSX.Arg("file", "Output file name").Required().String()
 	cmdBalance := kingpin.Command("balance", "Show balance report")
 	cmdVAT := kingpin.Command("vat", "Show VAT report")
-	infile := kingpin.Flag("input", "Input file").OpenFile(os.O_RDONLY, 0666)
+	infile := kingpin.Flag("input", "Input file").OpenFile(os.O_RDONLY, 0o666)
 	cmd := kingpin.Parse()
 
 	input := io.Reader(os.Stdin)
@@ -54,7 +54,7 @@ func balances(r io.Reader) (*sie.Document, map[string]*balance) {
 	balances := make(map[string]*balance)
 	for _, acc := range doc.Accounts {
 		balances[acc.ID] = newBalance()
-		if acc.InBalance != nil {
+		if acc.InBalance != 0 {
 			balances[acc.ID].add(time.Time{}, acc.InBalance)
 		}
 	}
@@ -68,7 +68,7 @@ func balances(r io.Reader) (*sie.Document, map[string]*balance) {
 
 func balanceReport(doc *sie.Document, accountBalance map[string]*balance) {
 	state := 0
-	var assets, liabilities big.Rat
+	var assets, liabilities sie.Decimal
 
 loop:
 	for _, acc := range doc.Accounts {
@@ -78,12 +78,12 @@ loop:
 			state = 1
 
 		case state == 1 && strings.HasPrefix(acc.ID, "2"):
-			fmtAccount("", "Summa tillgångar", &assets)
+			fmtAccount("", "Summa tillgångar", assets)
 			fmt.Println("\nEGET KAPITAL, SKULDER")
 			state = 2
 
 		case strings.HasPrefix(acc.ID, "3"):
-			fmtAccount("", "Summa eget kapital, skulder", &liabilities)
+			fmtAccount("", "Summa eget kapital, skulder", liabilities)
 			break loop
 		}
 
@@ -91,27 +91,27 @@ loop:
 		if !ok {
 			continue
 		}
-		if bal.total.Num().Int64() == 0 {
+		if bal.total == 0 {
 			continue
 		}
 
 		switch state {
 		case 1:
-			assets.Add(&assets, bal.total)
+			assets += bal.total
 		case 2:
-			liabilities.Add(&liabilities, bal.total)
+			liabilities += bal.total
 		}
 		fmtAccount(acc.ID, acc.Description, bal.total)
 	}
 
 	fmt.Println("\nRESULTAT")
 	result := assets
-	result.Add(&result, &liabilities)
-	fmtAccount("", "Beräknat resultat", &result)
+	result += liabilities
+	fmtAccount("", "Beräknat resultat", result)
 }
 
 func vatReport(doc *sie.Document, accountBalance map[string]*balance) {
-	var vat big.Rat
+	var vat sie.Decimal
 
 	fmt.Println("MOMS")
 	for _, acc := range doc.Accounts {
@@ -124,15 +124,15 @@ func vatReport(doc *sie.Document, accountBalance map[string]*balance) {
 			continue
 		}
 
-		vat.Add(&vat, bal.total)
+		vat += bal.total
 
-		if bal.total.Cmp(big.NewRat(0, 1)) != 0 {
+		if bal.total != 0 {
 			fmtAccount(acc.ID, acc.Description, bal.total)
 		}
 	}
 
 	fmt.Println("\nSUMMA")
-	fmtAccount("", "Moms att betala eller få tillbaka", &vat)
+	fmtAccount("", "Moms att betala eller få tillbaka", vat)
 }
 
 func resultReport(doc *sie.Document, accountBalance map[string]*balance) {
@@ -147,7 +147,7 @@ func resultReport(doc *sie.Document, accountBalance map[string]*balance) {
 		if !ok {
 			continue
 		}
-		if bal.total.Num().Int64() == 0 {
+		if bal.total == 0 {
 			continue
 		}
 		bal = bal.inverse()
@@ -236,7 +236,7 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 		if !ok {
 			continue
 		}
-		if bal.total.Num().Int64() == 0 {
+		if bal.total == 0 {
 			continue
 		}
 		bal = bal.inverse()
@@ -296,12 +296,12 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 	xlsx.SaveAs(dst)
 }
 
-func fmtAccount(id, descr string, val *big.Rat) {
+func fmtAccount(id, descr string, val sie.Decimal) {
 	const formatStr = "  %4s %-48s %10s\n"
 	if len(descr) > 48 {
 		descr = descr[:48]
 	}
-	fmt.Printf(formatStr, id, descr, val.FloatString(2))
+	fmt.Printf(formatStr, id, descr, val.String())
 }
 
 func fmtAccountMonths(id, descr string, starts, ends time.Time, bal *balance) {
@@ -313,7 +313,7 @@ func fmtAccountMonths(id, descr string, starts, ends time.Time, bal *balance) {
 	t := starts
 	for t.Before(ends) {
 		val := "· "
-		if v := bal.months[t.Format("2006-01")]; v != nil {
+		if v := bal.months[t.Format("2006-01")]; v != 0 {
 			if str := v.FloatString(0); str != "0" {
 				val = str
 			}
@@ -337,9 +337,8 @@ func xlsxAccountMonths(xlsx *excelize.File, row int, id, descr string, starts, e
 	t := starts
 	col := 'C'
 	for t.Before(ends) {
-		if v := bal.months[t.Format("2006-01")]; v != nil {
-			f, _ := v.Float64()
-			xlsx.SetCellValue(sheet, cell(col, row), f)
+		if v := bal.months[t.Format("2006-01")]; v != 0 {
+			xlsx.SetCellValue(sheet, cell(col, row), v.Float64())
 		}
 		col++
 		t = t.AddDate(0, 1, 0)

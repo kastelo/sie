@@ -4,18 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"math/big"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	iconv "github.com/djimenez/iconv-go"
 )
 
 func Parse(r io.Reader) (*Document, error) {
-	if convR, err := iconv.NewReader(r, "cp850", "utf-8"); err == nil {
-		r = convR
+	convR, err := iconv.NewReader(r, "cp850", "utf-8")
+	if err != nil {
+		return nil, err
 	}
+	r = convR
 
 	var doc Document
 	var curVer Entry
@@ -85,9 +87,9 @@ func Parse(r io.Reader) (*Document, error) {
 			if words[1] != "0" {
 				continue
 			}
-			amount, ok := new(big.Rat).SetString(words[3])
-			if !ok {
-				return nil, fmt.Errorf("unable to parse %s (%q)", words[3], sc.Text())
+			amount, err := parseAmount(words[3])
+			if err != nil {
+				return nil, err
 			}
 			idx, ok := accountCache[words[2]]
 			if !ok {
@@ -96,9 +98,9 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.Accounts[idx].InBalance = amount
 
 		case "#UB":
-			amount, ok := new(big.Rat).SetString(words[3])
-			if !ok {
-				return nil, fmt.Errorf("unable to parse %s (%q)", words[3], sc.Text())
+			amount, err := parseAmount(words[3])
+			if err != nil {
+				return nil, err
 			}
 			idx, ok := accountCache[words[2]]
 			if !ok {
@@ -125,9 +127,9 @@ func Parse(r io.Reader) (*Document, error) {
 			}
 
 		case "#TRANS":
-			amount, ok := new(big.Rat).SetString(words[3])
-			if !ok {
-				return nil, fmt.Errorf("unable to parse %s (%q)", words[3], sc.Text())
+			amount, err := parseAmount(words[3])
+			if err != nil {
+				return nil, err
 			}
 			trans := Transaction{
 				Account: words[1],
@@ -145,4 +147,21 @@ func Parse(r io.Reader) (*Document, error) {
 	})
 
 	return &doc, nil
+}
+
+func parseAmount(s string) (Decimal, error) {
+	wholeStr, fracStr, ok := strings.Cut(s, ".")
+	if !ok {
+		wholeStr = s
+		fracStr = "0"
+	}
+	whole, err := strconv.ParseInt(wholeStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse %q (whole part): %v", s, err)
+	}
+	frac, err := strconv.ParseInt(fracStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse %q (fractional part): %v", s, err)
+	}
+	return Decimal(whole*100 + frac), nil
 }
