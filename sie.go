@@ -2,6 +2,8 @@ package sie
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,9 +18,13 @@ func (d Decimal) String() string {
 
 func (d Decimal) FloatString(decimals int) string {
 	if decimals <= 0 {
-		return fmt.Sprintf("%d", d/100)
+		return fmt.Sprintf("%d", (d+50)/100)
 	}
-	return fmt.Sprintf("%d.%0*d", d/100, decimals, d%100)
+	abs := d
+	if d < 0 {
+		abs = -d
+	}
+	return fmt.Sprintf("%d.%0*d", d/100, decimals, abs%100)
 }
 
 func (d Decimal) Float64() float64 {
@@ -27,6 +33,26 @@ func (d Decimal) Float64() float64 {
 
 func (d Decimal) MarshalJSON() ([]byte, error) {
 	return []byte(d.String()), nil
+}
+
+func ParseDecimal(s string) (Decimal, error) {
+	wholeStr, fracStr, ok := strings.Cut(s, ".")
+	if !ok {
+		wholeStr = s
+		fracStr = "0"
+	}
+	whole, err := strconv.ParseInt(wholeStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse %q (whole part): %v", s, err)
+	}
+	frac, err := strconv.ParseInt(fracStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse %q (fractional part): %v", s, err)
+	}
+	if whole < 0 {
+		frac = -frac
+	}
+	return Decimal(whole*100 + frac), nil
 }
 
 type Document struct {
@@ -52,6 +78,11 @@ type Account struct {
 	Description string
 	InBalance   Decimal
 	OutBalance  Decimal
+}
+
+func (a *Account) IDInt() int {
+	id, _ := strconv.Atoi(a.ID[:4])
+	return id
 }
 
 type Entry struct {

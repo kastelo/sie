@@ -87,7 +87,7 @@ func Parse(r io.Reader) (*Document, error) {
 			if words[1] != "0" {
 				continue
 			}
-			amount, err := parseAmount(words[3])
+			amount, err := ParseDecimal(words[3])
 			if err != nil {
 				return nil, err
 			}
@@ -101,7 +101,7 @@ func Parse(r io.Reader) (*Document, error) {
 			if words[1] != "0" {
 				continue
 			}
-			amount, err := parseAmount(words[3])
+			amount, err := ParseDecimal(words[3])
 			if err != nil {
 				return nil, err
 			}
@@ -143,7 +143,7 @@ func Parse(r io.Reader) (*Document, error) {
 					annotations = append(annotations, Annotation{Tag: tagNo, Text: text})
 				}
 			}
-			amount, err := parseAmount(words[3])
+			amount, err := ParseDecimal(words[3])
 			if err != nil {
 				return nil, err
 			}
@@ -164,23 +164,6 @@ func Parse(r io.Reader) (*Document, error) {
 	})
 
 	return &doc, nil
-}
-
-func parseAmount(s string) (Decimal, error) {
-	wholeStr, fracStr, ok := strings.Cut(s, ".")
-	if !ok {
-		wholeStr = s
-		fracStr = "0"
-	}
-	whole, err := strconv.ParseInt(wholeStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("unable to parse %q (whole part): %v", s, err)
-	}
-	frac, err := strconv.ParseInt(fracStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("unable to parse %q (fractional part): %v", s, err)
-	}
-	return Decimal(whole*100 + frac), nil
 }
 
 func maybeUnquote(s string) string {
