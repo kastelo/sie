@@ -218,8 +218,21 @@ func resultReport(doc *sie.Document, accountBalance map[string]*balance) {
 	fmtAccountMonths("", "Resultat före skatt", doc.Starts, doc.Ends, sum)
 }
 
+type section struct {
+	name       string
+	start, end int
+}
+
+var sections = []section{
+	{"Intäkter", 3000, 3999},
+	{"Varukostnader", 4000, 4999},
+	{"Externa kostnader", 5000, 6999},
+	{"Personalkostnader", 7000, 7699},
+	{"Finansiella poster", 7700, 8999},
+}
+
 func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balance) {
-	state := 0
+	sec := -1
 	row := 1
 	startRow := 1
 	var sumRows []int
@@ -241,45 +254,30 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 		}
 		bal = bal.inverse()
 
-		switch {
-		case state != 1 && strings.HasPrefix(acc.ID, "3"):
-			xlsxHeader(xlsx, row, "Intäkter")
-			row++
-			startRow = row
-			state = 1
-
-		case state != 2 && strings.HasPrefix(acc.ID, "4"):
-			xlsxSumMonths(xlsx, row, "", doc.Starts, doc.Ends, startRow)
-			sumRows = append(sumRows, row)
-			row++
-			row++
-			xlsxHeader(xlsx, row, "Externa kostnader")
-			row++
-			startRow = row
-			state = 2
-
-		case state != 3 && strings.HasPrefix(acc.ID, "7"):
-			xlsxSumMonths(xlsx, row, "", doc.Starts, doc.Ends, startRow)
-			sumRows = append(sumRows, row)
-			row++
-			row++
-			xlsxHeader(xlsx, row, "Personalkostnader")
-			row++
-			startRow = row
-			state = 3
-
-		case state != 4 && strings.HasPrefix(acc.ID, "8"):
-			xlsxSumMonths(xlsx, row, "", doc.Starts, doc.Ends, startRow)
-			sumRows = append(sumRows, row)
-			row++
-			row++
-			xlsxHeader(xlsx, row, "Finansiella poster")
-			row++
-			startRow = row
-			state = 4
+		newSec := -1
+		for i, sec := range sections {
+			id := acc.IDInt()
+			if sec.start <= id && id <= sec.end {
+				newSec = i
+				break
+			}
 		}
 
-		if state == 0 {
+		if newSec != sec {
+			if sec != -1 {
+				xlsxSumMonths(xlsx, row, "", doc.Starts, doc.Ends, startRow)
+				sumRows = append(sumRows, row)
+				row++
+			}
+
+			row++
+			xlsxHeader(xlsx, row, sections[newSec].name)
+			row++
+			startRow = row
+			sec = newSec
+		}
+
+		if newSec == -1 {
 			continue
 		}
 
