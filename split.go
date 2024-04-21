@@ -2,7 +2,6 @@ package sie
 
 import (
 	"bufio"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -12,8 +11,7 @@ func splitWords(s string) []string {
 	sc.Split(scanWords)
 	var res []string
 	for sc.Scan() {
-		word, _ := strconv.Unquote(`"` + sc.Text() + `"`)
-		res = append(res, word)
+		res = append(res, maybeUnquote(sc.Text()))
 	}
 	return res
 }

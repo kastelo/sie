@@ -98,6 +98,9 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.Accounts[idx].InBalance = amount
 
 		case "#UB":
+			if words[1] != "0" {
+				continue
+			}
 			amount, err := parseAmount(words[3])
 			if err != nil {
 				return nil, err
@@ -127,13 +130,27 @@ func Parse(r io.Reader) (*Document, error) {
 			}
 
 		case "#TRANS":
+			var annotations []Annotation
+			if words[2] != "" {
+				// There's an annotation
+				parts := strings.Split(words[2], " ")
+				if len(parts)%2 != 0 {
+					return nil, fmt.Errorf("annotation has odd number of parts")
+				}
+				for i := 0; i < len(parts); i += 2 {
+					tagNo, _ := strconv.Atoi(maybeUnquote(parts[i]))
+					text := maybeUnquote(parts[i+1])
+					annotations = append(annotations, Annotation{Tag: tagNo, Text: text})
+				}
+			}
 			amount, err := parseAmount(words[3])
 			if err != nil {
 				return nil, err
 			}
 			trans := Transaction{
-				Account: words[1],
-				Amount:  amount,
+				Account:     words[1],
+				Amount:      amount,
+				Annotations: annotations,
 			}
 			curVer.Transactions = append(curVer.Transactions, trans)
 
@@ -164,4 +181,14 @@ func parseAmount(s string) (Decimal, error) {
 		return 0, fmt.Errorf("unable to parse %q (fractional part): %v", s, err)
 	}
 	return Decimal(whole*100 + frac), nil
+}
+
+func maybeUnquote(s string) string {
+	if r, err := strconv.Unquote(s); err == nil {
+		return r
+	}
+	if r, err := strconv.Unquote(`"` + s + `"`); err == nil {
+		return r
+	}
+	return s
 }

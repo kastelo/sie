@@ -63,6 +63,12 @@ type Entry struct {
 }
 
 type Transaction struct {
-	Account string
-	Amount  Decimal
+	Account     string
+	Annotations []Annotation
+	Amount      Decimal
+}
+
+type Annotation struct {
+	Tag  int
+	Text string
 }
