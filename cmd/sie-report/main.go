@@ -231,7 +231,7 @@ var sections = []section{
 	{"Varukostnader", 4000, 4999},
 	{"Externa kostnader", 5000, 6999},
 	{"Personalkostnader", 7000, 7699},
-	{"Övrigt & finansiellt", 7700, 8999},
+	{"Övrigt & finansiellt", 7700, 8998},
 }
 
 func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balance) {
@@ -272,6 +272,10 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 				newSec = i
 				break
 			}
+		}
+
+		if newSec == -1 {
+			continue
 		}
 
 		if newSec != sec {
