@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -224,11 +226,12 @@ type section struct {
 }
 
 var sections = []section{
-	{"Intäkter", 3000, 3999},
+	{"Nettoomsättning", 3000, 3799},
+	{"Övriga rörelseintäkter", 3800, 3999},
 	{"Varukostnader", 4000, 4999},
 	{"Externa kostnader", 5000, 6999},
 	{"Personalkostnader", 7000, 7699},
-	{"Finansiella poster", 7700, 8999},
+	{"Övrigt & finansiellt", 7700, 8999},
 }
 
 func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balance) {
@@ -239,8 +242,16 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 	xlsx := excelize.NewFile()
 
 	sheet := xlsx.GetSheetName(xlsx.GetActiveSheetIndex())
-	xlsx.SetColWidth(sheet, "B", "B", 40)
+	xlsx.SetColWidth(sheet, "B", "B", 55)
 	xlsx.SetColWidth(sheet, "C", "K", 10)
+
+	sy, sm, _ := doc.Starts.Date()
+	ey, em, _ := doc.Ends.Date()
+	numMonths := (ey-sy)*12 + int(em) - int(sm) + 1
+
+	style, _ := xlsx.NewStyle(styleJSON(defaultStyle()))
+	xlsx.SetCellStyle(sheet, cell('A', 1), cell('A'+rune(numMonths)+5, 1000), style)
+
 	xlsxHeaderMonths(xlsx, row, "", doc.Starts, doc.Ends)
 	row++
 
@@ -271,7 +282,7 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 			}
 
 			row++
-			xlsxHeader(xlsx, row, sections[newSec].name)
+			xlsxHeader(xlsx, row, numMonths, sections[newSec].name)
 			row++
 			startRow = row
 			sec = newSec
@@ -290,6 +301,11 @@ func resultXLSX(dst string, doc *sie.Document, accountBalance map[string]*balanc
 	row++
 	row++
 	xlsxSumSumMonths(xlsx, row, doc.Starts, doc.Ends, sumRows)
+	row++
+	row++
+
+	style, _ = xlsx.NewStyle("")
+	xlsx.SetCellStyle(sheet, cell('A', row+2), cell('A'+rune(numMonths)+5, 1000), style)
 
 	xlsx.SaveAs(dst)
 }
@@ -344,10 +360,78 @@ func xlsxAccountMonths(xlsx *excelize.File, row int, id, descr string, starts, e
 	col++
 
 	xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("SUM(C%d:%c%d)", row, col-1, row))
-	style, _ := xlsx.NewStyle(`{"number_format":3}`)
+	style, _ := xlsx.NewStyle(styleJSON(defaultStyle(), customNumberFormat()))
 	xlsx.SetCellStyle(sheet, cell('C', row), cell(col, row), style)
-	style, _ = xlsx.NewStyle(`{"number_format":3, "font":{"italic":true}}`)
+	style, _ = xlsx.NewStyle(styleJSON(defaultStyle(), fontItalic(), customNumberFormat()))
 	xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
+}
+
+func defaultStyle() map[string]any {
+	return map[string]any{
+		// solid white
+		"fill": map[string]any{
+			"type":    "pattern",
+			"color":   []any{"#FFFFFF"},
+			"pattern": 1,
+		},
+	}
+}
+
+func customNumberFormat() map[string]any {
+	return map[string]any{"custom_number_format": "#,##0,"}
+}
+
+func fontItalic() map[string]any {
+	return map[string]any{"font": map[string]any{"italic": true}}
+}
+
+func fontBold() map[string]any {
+	return map[string]any{"font": map[string]any{"bold": true}}
+}
+
+func fontBoldItalic() map[string]any {
+	return map[string]any{"font": map[string]any{"bold": true, "italic": true}}
+}
+
+func textAlignment(a string) map[string]any {
+	return map[string]any{"alignment": map[string]any{"horizontal": a}}
+}
+
+func thinBorder(where ...string) map[string]any {
+	var borders []any
+	for _, w := range where {
+		borders = append(borders, map[string]any{
+			"type":  w,
+			"color": "#000000",
+			"style": 1,
+		})
+	}
+	return map[string]any{
+		"border": borders,
+	}
+}
+
+func thickBorder(where ...string) map[string]any {
+	var borders []any
+	for _, w := range where {
+		borders = append(borders, map[string]any{
+			"type":  w,
+			"color": "#000000",
+			"style": 2,
+		})
+	}
+	return map[string]any{
+		"border": borders,
+	}
+}
+
+func styleJSON(ext ...map[string]any) string {
+	m := map[string]any{}
+	for _, e := range ext {
+		maps.Copy(m, e)
+	}
+	bs, _ := json.Marshal(m)
+	return string(bs)
 }
 
 func headerMonths(hdr string, starts, ends time.Time) {
@@ -375,15 +459,15 @@ func xlsxHeaderMonths(xlsx *excelize.File, row int, hdr string, starts, ends tim
 
 	xlsx.SetCellValue(sheet, cell(col, row), "Total")
 
-	style, _ := xlsx.NewStyle(`{"font":{"bold":true}}`)
+	style, _ := xlsx.NewStyle(styleJSON(defaultStyle(), fontBold(), textAlignment("right")))
 	xlsx.SetCellStyle(sheet, cell('B', row), cell(col, row), style)
 }
 
-func xlsxHeader(xlsx *excelize.File, row int, hdr string) {
+func xlsxHeader(xlsx *excelize.File, row, cols int, hdr string) {
 	sheet := xlsx.GetSheetName(xlsx.GetActiveSheetIndex())
 	xlsx.SetCellValue(sheet, cell('B', row), hdr)
-	style, _ := xlsx.NewStyle(`{"font":{"bold":true}}`)
-	xlsx.SetCellStyle(sheet, cell('B', row), cell('B', row), style)
+	style, _ := xlsx.NewStyle(styleJSON(defaultStyle(), fontBold(), thinBorder("bottom")))
+	xlsx.SetCellStyle(sheet, cell('B', row), cell('B'+rune(cols)+2, row), style)
 }
 
 func xlsxSumMonths(xlsx *excelize.File, row int, hdr string, starts, ends time.Time, startRow int) {
@@ -400,10 +484,10 @@ func xlsxSumMonths(xlsx *excelize.File, row int, hdr string, starts, ends time.T
 
 	xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("SUM(%c%d:%c%d)", col, startRow, col, row-1))
 
-	style, _ := xlsx.NewStyle(`{"number_format":3, "font":{"bold":true}}`)
+	style, _ := xlsx.NewStyle(styleJSON(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
 	xlsx.SetCellStyle(sheet, cell('B', row), cell(col-1, row), style)
 
-	style, _ = xlsx.NewStyle(`{"number_format":3, "font":{"bold":true,"italic":true}}`)
+	style, _ = xlsx.NewStyle(styleJSON(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("top")))
 	xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
 }
 
@@ -451,11 +535,17 @@ func xlsxSumSumMonths(xlsx *excelize.File, row int, starts, ends time.Time, sumR
 	}
 	col++
 
-	style, _ := xlsx.NewStyle(`{"number_format":3, "font":{"bold":true}}`)
-	xlsx.SetCellStyle(sheet, cell('B', row-1), cell(col-1, row), style)
+	style, _ := xlsx.NewStyle(styleJSON(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
+	xlsx.SetCellStyle(sheet, cell('B', row-1), cell(col-1, row-1), style)
 
-	style, _ = xlsx.NewStyle(`{"number_format":3, "font":{"bold":true,"italic":true}}`)
+	style, _ = xlsx.NewStyle(styleJSON(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("top")))
 	xlsx.SetCellStyle(sheet, cell(col, row-1), cell(col, row-1), style)
+
+	style, _ = xlsx.NewStyle(styleJSON(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("bottom")))
+	xlsx.SetCellStyle(sheet, cell('B', row), cell(col-1, row), style)
+
+	style, _ = xlsx.NewStyle(styleJSON(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("bottom")))
+	xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
 }
 
 func dashes(starts, ends time.Time) {
