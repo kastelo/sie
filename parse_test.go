@@ -47,8 +47,8 @@ func TestParse(t *testing.T) {
 				Date:        time.Date(2016, 1, 2, 0, 0, 0, 0, time.UTC),
 				Description: "Aktiekapital",
 				Transactions: []Transaction{
-					{Account: "1930", Annotations: []Annotation{{2, "FOO"}}, Amount: 50000 * 100},
-					{Account: "2081", Annotations: []Annotation{{3, "BAR"}}, Amount: -50000 * 100},
+					{Account: "1930", Annotations: []Annotation{{Tag: 2, Text: "FOO"}}, Amount: 50000 * 100},
+					{Account: "2081", Annotations: []Annotation{{Tag: 3, Text: "BAR"}}, Amount: -50000 * 100},
 				},
 			}, {
 				Type:        "A",

@@ -2,9 +2,10 @@ package sie
 
 import (
 	"bufio"
+	"cmp"
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -150,13 +151,28 @@ func Parse(r io.Reader) (*Document, error) {
 			}
 			curVer.Transactions = append(curVer.Transactions, trans)
 
+		case "#OBJEKT":
+			tag, _ := strconv.Atoi(words[1])
+			text := words[2]
+			description := words[3]
+			doc.Annotations = append(doc.Annotations, Annotation{Tag: tag, Text: text, Description: description})
+
 		case "}":
 			doc.Entries = append(doc.Entries, curVer)
 		}
 	}
 
-	sort.Slice(doc.Entries, func(i, j int) bool {
-		return doc.Entries[i].Date.Before(doc.Entries[j].Date)
+	slices.SortFunc(doc.Entries, func(a, b Entry) int {
+		if d := cmp.Compare(a.Date.Unix(), b.Date.Unix()); d != 0 {
+			return d
+		}
+		return cmp.Compare(a.ID, b.ID)
+	})
+	slices.SortFunc(doc.Annotations, func(a, b Annotation) int {
+		if d := cmp.Compare(a.Tag, b.Tag); d != 0 {
+			return d
+		}
+		return cmp.Compare(a.String(), b.String())
 	})
 
 	return &doc, nil

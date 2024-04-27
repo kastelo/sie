@@ -1,9 +1,7 @@
 package sie
 
 import (
-	"cmp"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -72,6 +70,7 @@ type Document struct {
 	Entries        []Entry
 	Starts         time.Time
 	Ends           time.Time
+	Annotations    []Annotation
 }
 
 type Account struct {
@@ -102,31 +101,20 @@ type Transaction struct {
 }
 
 type Annotation struct {
-	Tag  int
-	Text string
+	Tag         int
+	Text        string
+	Description string
 }
 
-func (d *Document) Annotations() []Annotation {
-	m := make(map[Annotation]struct{})
-	for _, ann := range d.Entries {
-		for _, tran := range ann.Transactions {
-			for _, ann := range tran.Annotations {
-				m[ann] = struct{}{}
-			}
-		}
-	}
+func (a Annotation) Equals(other Annotation) bool {
+	return a.Tag == other.Tag && a.Text == other.Text
+}
 
-	var annotations []Annotation
-	for k := range m {
-		annotations = append(annotations, k)
+func (a Annotation) String() string {
+	if a.Description != "" {
+		return a.Description
 	}
-	slices.SortFunc(annotations, func(a, b Annotation) int {
-		if r := cmp.Compare(a.Tag, b.Tag); r != 0 {
-			return r
-		}
-		return cmp.Compare(a.Text, b.Text)
-	})
-	return annotations
+	return fmt.Sprintf("%d-%s", a.Tag, a.Text)
 }
 
 func (d *Document) CopyForAnnotation(ann Annotation) *Document {
@@ -137,7 +125,7 @@ func (d *Document) CopyForAnnotation(ann Annotation) *Document {
 		e2.Transactions = make([]Transaction, 0, len(e.Transactions))
 		for _, t := range e.Transactions {
 			for _, a := range t.Annotations {
-				if a == ann {
+				if a.Equals(ann) {
 					e2.Transactions = append(e2.Transactions, t)
 					break
 				}

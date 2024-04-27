@@ -43,7 +43,7 @@ var sections = []section{
 	{"Finansiella poster", 8000, 8998},
 }
 
-func ResultXLSX(doc *Document, annotationNames map[Annotation]string) ([]byte, error) {
+func ResultXLSX(doc *Document) ([]byte, error) {
 	xlsx := excelize.NewFile()
 
 	_ = xlsx.SetAppProps(&excelize.AppProperties{
@@ -58,13 +58,10 @@ func ResultXLSX(doc *Document, annotationNames map[Annotation]string) ([]byte, e
 
 	// For each annotation, create a new sheet
 
-	annotations := doc.Annotations()
-	for _, annotation := range annotations {
+	for _, annotation := range doc.Annotations {
+		fmt.Println(annotation.String())
 		cpy := doc.CopyForAnnotation(annotation)
-		name := fmt.Sprintf("%d-%s", annotation.Tag, annotation.Text)
-		if n, ok := annotationNames[annotation]; ok {
-			name = n
-		}
+		name := annotation.String()
 		_, err := xlsx.NewSheet(name)
 		if err != nil {
 			return nil, err
@@ -74,7 +71,7 @@ func ResultXLSX(doc *Document, annotationNames map[Annotation]string) ([]byte, e
 
 	// If there were annotations, also produce a sheet for whatever remains
 
-	if len(annotations) > 0 {
+	if len(doc.Annotations) > 0 {
 		cpy := doc.CopyWithoutAnnotations()
 		_, _ = xlsx.NewSheet("(Other)")
 		writeSheet(xlsx, "(Other)", cpy)

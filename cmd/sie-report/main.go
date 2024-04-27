@@ -38,7 +38,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		bs, err := sie.ResultXLSX(doc, nil)
+		bs, err := sie.ResultXLSX(doc)
 		if err != nil {
 			log.Fatal(err)
 		}
