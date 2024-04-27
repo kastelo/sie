@@ -1,0 +1,377 @@
+package sie
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"dario.cat/mergo"
+	"github.com/xuri/excelize/v2"
+)
+
+func balances(doc *Document) map[string]*balance {
+	balances := make(map[string]*balance)
+	for _, acc := range doc.Accounts {
+		balances[acc.ID] = newBalance()
+		if acc.InBalance != 0 {
+			balances[acc.ID].add(time.Time{}, acc.InBalance)
+		}
+	}
+	for _, entry := range doc.Entries {
+		for _, tran := range entry.Transactions {
+			balances[tran.Account].add(entry.Date, tran.Amount)
+		}
+	}
+	return balances
+}
+
+type section struct {
+	name       string
+	start, end int
+}
+
+var sections = []section{
+	{"Nettoomsättning", 3000, 3799},
+	{"Aktiverat arbete för egen räkning", 3800, 3899},
+	{"Övriga rörelseintäkter", 3900, 3999},
+	{"Varukostnader", 4000, 4999},
+	{"Externa kostnader", 5000, 6999},
+	{"Personalkostnader", 7000, 7699},
+	{"Av- och nedskrivningar", 7700, 7899},
+	{"Övriga rörelsekostnader", 7900, 7999},
+	{"Finansiella poster", 8000, 8998},
+}
+
+func ResultXLSX(doc *Document, annotationNames map[Annotation]string) ([]byte, error) {
+	xlsx := excelize.NewFile()
+
+	_ = xlsx.SetAppProps(&excelize.AppProperties{
+		Application: "kastelo.dev/sie",
+		Company:     "Kastelo AB",
+		DocSecurity: 2,
+	})
+
+	sheet := xlsx.GetSheetName(xlsx.GetActiveSheetIndex())
+	writeSheet(xlsx, sheet, doc)
+	_ = xlsx.SetSheetName(sheet, "Totalt")
+
+	// For each annotation, create a new sheet
+
+	annotations := doc.Annotations()
+	for _, annotation := range annotations {
+		cpy := doc.CopyForAnnotation(annotation)
+		name := fmt.Sprintf("%d-%s", annotation.Tag, annotation.Text)
+		if n, ok := annotationNames[annotation]; ok {
+			name = n
+		}
+		_, err := xlsx.NewSheet(name)
+		if err != nil {
+			return nil, err
+		}
+		writeSheet(xlsx, name, cpy)
+	}
+
+	// If there were annotations, also produce a sheet for whatever remains
+
+	if len(annotations) > 0 {
+		cpy := doc.CopyWithoutAnnotations()
+		_, _ = xlsx.NewSheet("(Other)")
+		writeSheet(xlsx, "(Other)", cpy)
+	}
+
+	xlsx.SetActiveSheet(0)
+
+	buf, err := xlsx.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func writeSheet(xlsx *excelize.File, sheet string, doc *Document) {
+	sec := -1
+	row := 1
+	startRow := 1
+	var sumRows []int
+
+	_ = xlsx.SetColWidth(sheet, "B", "B", 55)
+	_ = xlsx.SetColWidth(sheet, "C", "K", 10)
+
+	sy, sm, _ := doc.Starts.Date()
+	ey, em, _ := doc.Ends.Date()
+	numMonths := (ey-sy)*12 + int(em) - int(sm) + 1
+
+	style, _ := xlsx.NewStyle(defaultStyle())
+	_ = xlsx.SetCellStyle(sheet, cell('A', 1), cell('A'+rune(numMonths)+5, 1000), style)
+
+	xlsxHeaderMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends)
+	// row++
+
+	accountBalance := balances(doc)
+	for _, acc := range doc.Accounts {
+		bal, ok := accountBalance[acc.ID]
+		if !ok {
+			continue
+		}
+		if bal.total == 0 {
+			continue
+		}
+		bal = bal.inverse()
+
+		newSec := -1
+		for i, sec := range sections {
+			id := acc.IDInt()
+			if sec.start <= id && id <= sec.end {
+				newSec = i
+				break
+			}
+		}
+
+		if newSec == -1 {
+			continue
+		}
+
+		if newSec != sec {
+			if sec != -1 {
+				xlsxSumMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends, startRow)
+				sumRows = append(sumRows, row)
+				row++
+			}
+
+			row++
+			xlsxHeader(xlsx, sheet, row, numMonths, sections[newSec].name)
+			row++
+			startRow = row
+			sec = newSec
+		}
+
+		if newSec == -1 {
+			continue
+		}
+
+		xlsxAccountMonths(xlsx, sheet, row, acc.ID, acc.Description, doc.Starts, doc.Ends, bal)
+		row++
+	}
+
+	xlsxSumMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends, startRow)
+	sumRows = append(sumRows, row)
+	row++
+	row++
+	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows)
+	row++
+	row++
+
+	style, _ = xlsx.NewStyle(nil)
+	_ = xlsx.SetCellStyle(sheet, cell('A', row+2), cell('A'+rune(numMonths)+5, 1000), style)
+}
+
+func cell(col rune, row int) string {
+	return fmt.Sprintf("%c%d", col, row)
+}
+
+func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id, descr string, starts, ends time.Time, bal *balance) {
+	idInt, _ := strconv.Atoi(id)
+	_ = xlsx.SetCellInt(sheet, cell('A', row), idInt)
+	_ = xlsx.SetCellValue(sheet, cell('B', row), descr)
+	t := starts
+	col := 'C'
+	for t.Before(ends) {
+		if v := bal.months[t.Format("2006-01")]; v != 0 {
+			_ = xlsx.SetCellValue(sheet, cell(col, row), v.Float64())
+		}
+		col++
+		t = t.AddDate(0, 1, 0)
+	}
+	col++
+
+	_ = xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("SUM(C%d:%c%d)", row, col-1, row))
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell('C', row), cell(col, row), style)
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
+}
+
+func defaultStyle() *excelize.Style {
+	return &excelize.Style{
+		// solid white
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#FFFFFF"},
+			Pattern: 1,
+		},
+	}
+}
+
+func customNumberFormat() *excelize.Style {
+	fmt := "#,##0,"
+	return &excelize.Style{
+		CustomNumFmt: &fmt,
+	}
+}
+
+func fontItalic() *excelize.Style {
+	return &excelize.Style{
+		Font: &excelize.Font{
+			Italic: true,
+		},
+	}
+}
+
+func fontBold() *excelize.Style {
+	return &excelize.Style{
+		Font: &excelize.Font{
+			Bold: true,
+		},
+	}
+}
+
+func fontBoldItalic() *excelize.Style {
+	return &excelize.Style{
+		Font: &excelize.Font{
+			Bold:   true,
+			Italic: true,
+		},
+	}
+}
+
+func textAlignment(a string) *excelize.Style {
+	return &excelize.Style{
+		Alignment: &excelize.Alignment{
+			Horizontal: a,
+		},
+	}
+}
+
+func thinBorder(where ...string) *excelize.Style {
+	s := &excelize.Style{}
+	for _, w := range where {
+		s.Border = append(s.Border, excelize.Border{
+			Type:  w,
+			Color: "#000000",
+			Style: 1,
+		})
+	}
+	return s
+}
+
+func thickBorder(where ...string) *excelize.Style {
+	s := &excelize.Style{}
+	for _, w := range where {
+		s.Border = append(s.Border, excelize.Border{
+			Type:  w,
+			Color: "#000000",
+			Style: 2,
+		})
+	}
+	return s
+}
+
+func mergeStyles(ext ...*excelize.Style) *excelize.Style {
+	if len(ext) == 0 {
+		return nil
+	}
+	for _, e := range ext[1:] {
+		_ = mergo.Merge(ext[0], e, mergo.WithOverride)
+	}
+	return ext[0]
+}
+
+func xlsxHeaderMonths(xlsx *excelize.File, sheet string, row int, hdr string, starts, ends time.Time) {
+	_ = xlsx.SetCellValue(sheet, cell('B', row), hdr)
+	t := starts
+	col := 'C'
+	for t.Before(ends) {
+		_ = xlsx.SetCellValue(sheet, cell(col, row), t.Format("2006-01"))
+		col++
+		t = t.AddDate(0, 1, 0)
+	}
+	col++
+
+	_ = xlsx.SetCellValue(sheet, cell(col, row), "Total")
+
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), textAlignment("right")))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(col, row), style)
+}
+
+func xlsxHeader(xlsx *excelize.File, sheet string, row, cols int, hdr string) {
+	_ = xlsx.SetCellValue(sheet, cell('B', row), hdr)
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thinBorder("bottom")))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell('B'+rune(cols)+2, row), style)
+}
+
+func xlsxSumMonths(xlsx *excelize.File, sheet string, row int, hdr string, starts, ends time.Time, startRow int) {
+	_ = xlsx.SetCellValue(sheet, cell('B', row), hdr)
+	t := starts
+	col := 'C'
+	for t.Before(ends) {
+		_ = xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("SUM(%c%d:%c%d)", col, startRow, col, row-1))
+		col++
+		t = t.AddDate(0, 1, 0)
+	}
+	col++
+
+	_ = xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("SUM(%c%d:%c%d)", col, startRow, col, row-1))
+
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(col-1, row), style)
+
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("top")))
+	_ = xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
+}
+
+func sumcells(col rune, rows []int) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%c%d", col, rows[0])
+	for _, row := range rows[1:] {
+		fmt.Fprintf(&b, "+%c%d", col, row)
+	}
+	return b.String()
+}
+
+func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int) {
+	_ = xlsx.SetCellValue(sheet, cell('B', row), "Resultat")
+
+	// sum
+
+	t := starts
+	col := 'C'
+	for t.Before(ends) {
+		_ = xlsx.SetCellFormula(sheet, cell(col, row), sumcells(col, sumRows))
+		col++
+		t = t.AddDate(0, 1, 0)
+	}
+	col++
+
+	_ = xlsx.SetCellFormula(sheet, cell(col, row), sumcells(col, sumRows))
+
+	// accumulated sum
+
+	row++
+
+	_ = xlsx.SetCellValue(sheet, cell('B', row), "Ackumulerat resultat")
+
+	col = 'C'
+	_ = xlsx.SetCellFormula(sheet, cell(col, row), cell(col, row-1))
+
+	t = starts.AddDate(0, 1, 0)
+	col = 'D'
+	for t.Before(ends) {
+		_ = xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("%c%d+%c%d", col-1, row, col, row-1))
+		col++
+		t = t.AddDate(0, 1, 0)
+	}
+	col++
+
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row-1), cell(col-1, row-1), style)
+
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("top")))
+	_ = xlsx.SetCellStyle(sheet, cell(col, row-1), cell(col, row-1), style)
+
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("bottom")))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(col-1, row), style)
+
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("bottom")))
+	_ = xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
+}

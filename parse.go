@@ -9,15 +9,11 @@ import (
 	"strings"
 	"time"
 
-	iconv "github.com/djimenez/iconv-go"
+	"golang.org/x/text/encoding/charmap"
 )
 
 func Parse(r io.Reader) (*Document, error) {
-	convR, err := iconv.NewReader(r, "cp850", "utf-8")
-	if err != nil {
-		return nil, err
-	}
-	r = convR
+	r = charmap.CodePage850.NewDecoder().Reader(r)
 
 	var doc Document
 	var curVer Entry

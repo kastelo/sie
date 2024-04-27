@@ -1,7 +1,9 @@
 package sie
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -102,4 +104,66 @@ type Transaction struct {
 type Annotation struct {
 	Tag  int
 	Text string
+}
+
+func (d *Document) Annotations() []Annotation {
+	m := make(map[Annotation]struct{})
+	for _, ann := range d.Entries {
+		for _, tran := range ann.Transactions {
+			for _, ann := range tran.Annotations {
+				m[ann] = struct{}{}
+			}
+		}
+	}
+
+	var annotations []Annotation
+	for k := range m {
+		annotations = append(annotations, k)
+	}
+	slices.SortFunc(annotations, func(a, b Annotation) int {
+		if r := cmp.Compare(a.Tag, b.Tag); r != 0 {
+			return r
+		}
+		return cmp.Compare(a.Text, b.Text)
+	})
+	return annotations
+}
+
+func (d *Document) CopyForAnnotation(ann Annotation) *Document {
+	cpy := *d
+	cpy.Entries = make([]Entry, 0, len(d.Entries))
+	for _, e := range d.Entries {
+		e2 := e
+		e2.Transactions = make([]Transaction, 0, len(e.Transactions))
+		for _, t := range e.Transactions {
+			for _, a := range t.Annotations {
+				if a == ann {
+					e2.Transactions = append(e2.Transactions, t)
+					break
+				}
+			}
+		}
+		if len(e2.Transactions) > 0 {
+			cpy.Entries = append(cpy.Entries, e2)
+		}
+	}
+	return &cpy
+}
+
+func (d *Document) CopyWithoutAnnotations() *Document {
+	cpy := *d
+	cpy.Entries = make([]Entry, 0, len(d.Entries))
+	for _, e := range d.Entries {
+		e2 := e
+		e2.Transactions = make([]Transaction, 0, len(e.Transactions))
+		for _, t := range e.Transactions {
+			if len(t.Annotations) == 0 {
+				e2.Transactions = append(e2.Transactions, t)
+			}
+		}
+		if len(e2.Transactions) > 0 {
+			cpy.Entries = append(cpy.Entries, e2)
+		}
+	}
+	return &cpy
 }
