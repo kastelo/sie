@@ -59,7 +59,6 @@ func ResultXLSX(doc *Document) ([]byte, error) {
 	// For each annotation, create a new sheet
 
 	for _, annotation := range doc.Annotations {
-		fmt.Println(annotation.String())
 		cpy := doc.CopyForAnnotation(annotation)
 		name := annotation.String()
 		_, err := xlsx.NewSheet(name)
@@ -103,7 +102,15 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *Document) {
 	_ = xlsx.SetCellStyle(sheet, cell('A', 1), cell('A'+rune(numMonths)+5, 1000), style)
 
 	xlsxHeaderMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends)
-	// row++
+	row++
+
+	_ = xlsx.SetPanes(sheet, &excelize.Panes{
+		ActivePane:  "bottomRight",
+		Freeze:      true,
+		XSplit:      2,
+		YSplit:      1,
+		TopLeftCell: "C2",
+	})
 
 	accountBalance := balances(doc)
 	for _, acc := range doc.Accounts {
