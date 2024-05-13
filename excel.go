@@ -208,7 +208,7 @@ func defaultStyle() *excelize.Style {
 }
 
 func customNumberFormat() *excelize.Style {
-	fmt := "#,##0,"
+	fmt := "#,##0,.0"
 	return &excelize.Style{
 		CustomNumFmt: &fmt,
 	}
