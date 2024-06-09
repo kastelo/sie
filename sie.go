@@ -155,3 +155,7 @@ func (d *Document) CopyWithoutAnnotations() *Document {
 	}
 	return &cpy
 }
+
+func (d *Document) AddEntriesFrom(other *Document) {
+	d.Entries = append(d.Entries, other.Entries...)
+}

@@ -58,14 +58,38 @@ func ResultXLSX(doc *Document) ([]byte, error) {
 
 	// For each annotation, create a new sheet
 
+	type annotatedDoc struct {
+		name string
+		doc  *Document
+	}
+
+	var docs []annotatedDoc
 	for _, annotation := range doc.Annotations {
-		cpy := doc.CopyForAnnotation(annotation)
+		doc.CopyForAnnotation(annotation)
+		if len(doc.Entries) == 0 {
+			continue
+		}
+
 		name := annotation.String()
-		_, err := xlsx.NewSheet(name)
+		found := false
+		for i := range docs {
+			if docs[i].name == name {
+				docs[i].doc.AddEntriesFrom(doc.CopyForAnnotation(annotation))
+				found = true
+				break
+			}
+		}
+		if !found {
+			docs = append(docs, annotatedDoc{name, doc.CopyForAnnotation(annotation)})
+		}
+	}
+
+	for _, adoc := range docs {
+		_, err := xlsx.NewSheet(adoc.name)
 		if err != nil {
 			return nil, err
 		}
-		writeSheet(xlsx, name, cpy)
+		writeSheet(xlsx, adoc.name, adoc.doc)
 	}
 
 	// If there were annotations, also produce a sheet for whatever remains
