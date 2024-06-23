@@ -102,6 +102,14 @@ func ResultXLSX(doc *Document) ([]byte, error) {
 
 	xlsx.SetActiveSheet(0)
 
+	// Increase size of window
+	for i := range xlsx.WorkBook.BookViews.WorkBookView {
+		xlsx.WorkBook.BookViews.WorkBookView[i].XWindow = "1000"
+		xlsx.WorkBook.BookViews.WorkBookView[i].YWindow = "1000"
+		xlsx.WorkBook.BookViews.WorkBookView[i].WindowWidth = 25000
+		xlsx.WorkBook.BookViews.WorkBookView[i].WindowHeight = 25000 / 3 * 2
+	}
+
 	buf, err := xlsx.WriteToBuffer()
 	if err != nil {
 		return nil, err
