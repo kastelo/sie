@@ -199,7 +199,7 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *Document) {
 	row++
 
 	style, _ = xlsx.NewStyle(nil)
-	_ = xlsx.SetCellStyle(sheet, cell('A', row+2), cell('A'+rune(numMonths)+5, 1000), style)
+	_ = xlsx.SetCellStyle(sheet, cell('A', row+5), cell('A'+rune(numMonths)+5, 1000), style)
 }
 
 func cell(col rune, row int) string {
@@ -378,8 +378,13 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 		t = t.AddDate(0, 1, 0)
 	}
 	col++
-
 	_ = xlsx.SetCellFormula(sheet, cell(col, row), sumcells(col, sumRows))
+	ecol := col
+
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol-1, row), style)
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("top")))
+	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
 
 	// accumulated sum
 
@@ -397,17 +402,39 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 		col++
 		t = t.AddDate(0, 1, 0)
 	}
-	col++
 
-	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
-	_ = xlsx.SetCellStyle(sheet, cell('B', row-1), cell(col-1, row-1), style)
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol-1, row), style)
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
 
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("top")))
-	_ = xlsx.SetCellStyle(sheet, cell(col, row-1), cell(col, row-1), style)
+	// quarterly sums
+
+	row++
+	_ = xlsx.SetCellValue(sheet, cell('B', row), "Kvartalsvis resultat")
+	scol := 'E'
+	for t = starts.AddDate(0, 3, 0); t.Before(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 3, 0) {
+		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-2, row-2, scol, row-2))
+		scol += 3
+	}
+
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
+
+	// half year sums
+
+	row++
+	_ = xlsx.SetCellValue(sheet, cell('B', row), "Halvårsvis resultat")
+	scol = 'H'
+	for t = starts.AddDate(0, 6, 0); t.Before(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 6, 0) {
+		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-5, row-3, scol, row-3))
+		scol += 6
+	}
 
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("bottom")))
-	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(col-1, row), style)
-
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("bottom")))
-	_ = xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
+	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
 }
