@@ -18,8 +18,10 @@ func main() {
 	log.SetFlags(log.Lshortfile)
 
 	cmdResult := kingpin.Command("result", "Show result report")
-	cmdXLSX := kingpin.Command("xlsx", "Save result report as Excel")
+	cmdXLSX := kingpin.Command("xresult", "Save result report as Excel")
 	xlsxFile := cmdXLSX.Arg("file", "Output file name").Required().String()
+	cmdXBalance := kingpin.Command("xbalance", "Save result report as Excel")
+	xbalanceFile := cmdXBalance.Arg("file", "Output file name").Required().String()
 	cmdBalance := kingpin.Command("balance", "Show balance report")
 	cmdVAT := kingpin.Command("vat", "Show VAT report")
 	infile := kingpin.Flag("input", "Input file").OpenFile(os.O_RDONLY, 0o666)
@@ -43,6 +45,18 @@ func main() {
 			log.Fatal(err)
 		}
 		if err := os.WriteFile(*xlsxFile, bs, 0o666); err != nil {
+			log.Fatal(err)
+		}
+	case cmdXBalance.FullCommand():
+		doc, err := sie.Parse(input)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bs, err := sie.BalanceXLSX(doc)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := os.WriteFile(*xbalanceFile, bs, 0o666); err != nil {
 			log.Fatal(err)
 		}
 	case cmdBalance.FullCommand():
