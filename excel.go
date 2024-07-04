@@ -385,28 +385,7 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol-1, row), style)
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("top")))
 	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
-
-	// accumulated sum
-
-	row++
-
-	_ = xlsx.SetCellValue(sheet, cell('B', row), "Ackumulerat resultat")
-
-	col = 'C'
-	_ = xlsx.SetCellFormula(sheet, cell(col, row), cell(col, row-1))
-
-	t = starts.AddDate(0, 1, 0)
-	col = 'D'
-	for t.Before(ends) {
-		_ = xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("%c%d+%c%d", col-1, row, col, row-1))
-		col++
-		t = t.AddDate(0, 1, 0)
-	}
-
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat()))
-	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol-1, row), style)
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat()))
-	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
+	resultRow := row
 
 	// quarterly sums
 
@@ -414,7 +393,7 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Kvartalsvis resultat")
 	scol := 'E'
 	for t = starts.AddDate(0, 3, 0); t.Before(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 3, 0) {
-		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-2, row-2, scol, row-2))
+		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-2, resultRow, scol, resultRow))
 		scol += 3
 	}
 
@@ -429,7 +408,7 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Halvårsvis resultat")
 	scol = 'H'
 	for t = starts.AddDate(0, 6, 0); t.Before(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 6, 0) {
-		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-5, row-3, scol, row-3))
+		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-5, resultRow, scol, resultRow))
 		scol += 6
 	}
 
