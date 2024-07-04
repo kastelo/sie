@@ -1,12 +1,14 @@
-package sie
+package excel
 
 import (
 	"strings"
+	"time"
 
 	"github.com/xuri/excelize/v2"
+	"kastelo.dev/sie"
 )
 
-func BalanceXLSX(doc *Document) ([]byte, error) {
+func BalanceXLSX(doc *sie.Document) ([]byte, error) {
 	xlsx := excelize.NewFile()
 
 	_ = xlsx.SetAppProps(&excelize.AppProperties{
@@ -40,10 +42,10 @@ func BalanceXLSX(doc *Document) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func writeBalanceSheet(xlsx *excelize.File, sheet string, doc *Document) {
+func writeBalanceSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	state := 0
-	var inSum, outSum Decimal
-	var assets, liabilities Decimal
+	var inSum, outSum sie.Decimal
+	var assets, liabilities sie.Decimal
 	row := 1
 loop:
 	for _, acc := range doc.Accounts {
@@ -151,4 +153,53 @@ loop:
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle()))
 	_ = xlsx.SetCellStyle(sheet, cell('F', 1), cell('F', row), style)
 	_ = xlsx.SetCellStyle(sheet, cell('A', row+1), cell('F', row+1), style)
+}
+
+func balances(doc *sie.Document) map[string]*balance {
+	balances := make(map[string]*balance)
+	for _, acc := range doc.Accounts {
+		balances[acc.ID] = newBalance()
+		if acc.InBalance != 0 {
+			balances[acc.ID].add(time.Time{}, acc.InBalance)
+		}
+	}
+	for _, entry := range doc.Entries {
+		for _, tran := range entry.Transactions {
+			balances[tran.Account].add(entry.Date, tran.Amount)
+		}
+	}
+	return balances
+}
+
+type balance struct {
+	total  sie.Decimal
+	months map[string]sie.Decimal
+}
+
+func newBalance() *balance {
+	return &balance{
+		months: make(map[string]sie.Decimal),
+	}
+}
+
+func (b *balance) add(date time.Time, amount sie.Decimal) {
+	b.total += amount
+	key := date.Format("2006-01")
+	b.months[key] += amount
+}
+
+func (b *balance) inverse() *balance {
+	new := newBalance()
+	new.total -= b.total
+	for k, v := range b.months {
+		new.months[k] = -v
+	}
+	return new
+}
+
+func (b *balance) addAll(other *balance) {
+	b.total += other.total
+	for key, v := range other.months {
+		b.months[key] += v
+	}
 }

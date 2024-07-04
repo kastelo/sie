@@ -1,4 +1,4 @@
-package sie
+package excel
 
 import (
 	"fmt"
@@ -8,23 +8,8 @@ import (
 
 	"dario.cat/mergo"
 	"github.com/xuri/excelize/v2"
+	"kastelo.dev/sie"
 )
-
-func balances(doc *Document) map[string]*balance {
-	balances := make(map[string]*balance)
-	for _, acc := range doc.Accounts {
-		balances[acc.ID] = newBalance()
-		if acc.InBalance != 0 {
-			balances[acc.ID].add(time.Time{}, acc.InBalance)
-		}
-	}
-	for _, entry := range doc.Entries {
-		for _, tran := range entry.Transactions {
-			balances[tran.Account].add(entry.Date, tran.Amount)
-		}
-	}
-	return balances
-}
 
 type section struct {
 	name       string
@@ -43,7 +28,7 @@ var sections = []section{
 	{"Finansiella poster", 8000, 8998},
 }
 
-func ResultXLSX(doc *Document) ([]byte, error) {
+func ResultXLSX(doc *sie.Document) ([]byte, error) {
 	xlsx := excelize.NewFile()
 
 	_ = xlsx.SetAppProps(&excelize.AppProperties{
@@ -60,7 +45,7 @@ func ResultXLSX(doc *Document) ([]byte, error) {
 
 	type annotatedDoc struct {
 		name string
-		doc  *Document
+		doc  *sie.Document
 	}
 
 	var docs []annotatedDoc
@@ -117,7 +102,7 @@ func ResultXLSX(doc *Document) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func writeSheet(xlsx *excelize.File, sheet string, doc *Document) {
+func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	sec := -1
 	row := 1
 	startRow := 1

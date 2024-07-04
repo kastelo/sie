@@ -11,6 +11,7 @@ import (
 	"github.com/alecthomas/kingpin"
 
 	"kastelo.dev/sie"
+	"kastelo.dev/sie/excel"
 )
 
 func main() {
@@ -40,7 +41,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		bs, err := sie.ResultXLSX(doc)
+		bs, err := excel.ResultXLSX(doc)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -52,7 +53,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		bs, err := sie.BalanceXLSX(doc)
+		bs, err := excel.BalanceXLSX(doc)
 		if err != nil {
 			log.Fatal(err)
 		}
