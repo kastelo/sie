@@ -198,8 +198,10 @@ func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id, descr str
 	t := starts
 	col := 'C'
 	for t.Before(ends) {
-		if v := bal.months[t.Format("2006-01")]; v != 0 {
-			_ = xlsx.SetCellValue(sheet, cell(col, row), v.Float64())
+		if v := bal.months[t.Format("2006-01")]; len(v) == 1 {
+			_ = xlsx.SetCellValue(sheet, cell(col, row), v[0].Float64())
+		} else if len(v) != 0 {
+			_ = xlsx.SetCellFormula(sheet, cell(col, row), sumFormula(v))
 		}
 		col++
 		t = t.AddDate(0, 1, 0)
@@ -401,4 +403,19 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("bottom")))
 	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
+}
+
+func sumFormula(v []sie.Decimal) string {
+	var b strings.Builder
+	for i, d := range v {
+		switch {
+		case i > 0 && d >= 0:
+			b.WriteString(" + ")
+		case i > 0 && d < 0:
+			b.WriteString(" - ")
+			d = -d
+		}
+		fmt.Fprintf(&b, "%v", d.Float64())
+	}
+	return b.String()
 }

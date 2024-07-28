@@ -173,33 +173,28 @@ func balances(doc *sie.Document) map[string]*balance {
 
 type balance struct {
 	total  sie.Decimal
-	months map[string]sie.Decimal
+	months map[string][]sie.Decimal
 }
 
 func newBalance() *balance {
 	return &balance{
-		months: make(map[string]sie.Decimal),
+		months: make(map[string][]sie.Decimal),
 	}
 }
 
 func (b *balance) add(date time.Time, amount sie.Decimal) {
 	b.total += amount
 	key := date.Format("2006-01")
-	b.months[key] += amount
+	b.months[key] = append(b.months[key], amount)
 }
 
 func (b *balance) inverse() *balance {
 	new := newBalance()
 	new.total -= b.total
-	for k, v := range b.months {
-		new.months[k] = -v
+	for m, v := range b.months {
+		for i := range v {
+			new.months[m] = append(new.months[m], -v[i])
+		}
 	}
 	return new
-}
-
-func (b *balance) addAll(other *balance) {
-	b.total += other.total
-	for key, v := range other.months {
-		b.months[key] += v
-	}
 }
