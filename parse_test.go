@@ -11,7 +11,6 @@ import (
 
 func TestParse(t *testing.T) {
 	expected := &Document{
-		Flag:           0,
 		ProgramName:    "SpeedLedger e-bokföring",
 		ProgramVersion: "2.0",
 		Format:         "PC8",

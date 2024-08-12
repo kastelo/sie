@@ -56,7 +56,6 @@ func ParseDecimal(s string) (Decimal, error) {
 }
 
 type Document struct {
-	Flag           int
 	ProgramName    string
 	ProgramVersion string
 	Format         string

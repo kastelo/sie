@@ -28,9 +28,6 @@ func Parse(r io.Reader) (*Document, error) {
 		}
 
 		switch words[0] {
-		case "#FLAGGA":
-			doc.Flag, _ = strconv.Atoi(words[1])
-
 		case "#PROGRAM":
 			doc.ProgramName = words[1]
 			doc.ProgramVersion = words[2]
