@@ -1,7 +1,6 @@
 package excel
 
 import (
-	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -51,7 +50,7 @@ loop:
 	for _, acc := range doc.Accounts {
 
 		switch {
-		case state == 0 && strings.HasPrefix(acc.ID, "1"):
+		case state == 0 && acc.ID >= 1000 && acc.ID <= 1999:
 			style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thickBorder("top")))
 			_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('F', row), style)
 			row++
@@ -68,7 +67,7 @@ loop:
 
 			state = 1
 
-		case state == 1 && strings.HasPrefix(acc.ID, "2"):
+		case state == 1 && acc.ID >= 2000 && acc.ID <= 2999:
 			_ = xlsx.SetCellValue(sheet, cell('A', row), "")
 			_ = xlsx.SetCellValue(sheet, cell('B', row), "Summa tillgångar")
 			_ = xlsx.SetCellValue(sheet, cell('C', row), inSum.Float64())
@@ -93,7 +92,7 @@ loop:
 			row++
 			state = 2
 
-		case strings.HasPrefix(acc.ID, "3"):
+		case acc.ID >= 3000 && acc.ID <= 3999:
 			_ = xlsx.SetCellValue(sheet, cell('A', row), "")
 			_ = xlsx.SetCellValue(sheet, cell('B', row), "Summa eget kapital, skulder")
 			_ = xlsx.SetCellValue(sheet, cell('C', row), inSum.Float64())
@@ -155,8 +154,8 @@ loop:
 	_ = xlsx.SetCellStyle(sheet, cell('A', row+1), cell('F', row+1), style)
 }
 
-func balances(doc *sie.Document) map[string]*balance {
-	balances := make(map[string]*balance)
+func balances(doc *sie.Document) map[int]*balance {
+	balances := make(map[int]*balance)
 	for _, acc := range doc.Accounts {
 		balances[acc.ID] = newBalance()
 		if acc.InBalance != 0 {
@@ -165,7 +164,7 @@ func balances(doc *sie.Document) map[string]*balance {
 	}
 	for _, entry := range doc.Entries {
 		for _, tran := range entry.Transactions {
-			balances[tran.Account].add(entry.Date, tran.Amount)
+			balances[tran.AccountID].add(entry.Date, tran.Amount)
 		}
 	}
 	return balances

@@ -18,7 +18,7 @@ func Parse(r io.Reader) (*Document, error) {
 
 	var doc Document
 	var curVer Entry
-	accountCache := make(map[string]int)
+	accountCache := make(map[int]int)
 
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {
@@ -61,14 +61,15 @@ func Parse(r io.Reader) (*Document, error) {
 
 		case "#KONTO":
 			acc := Account{
-				ID:          words[1],
+				ID:          tryParseInt(words[1]),
 				Description: words[2],
 			}
 			accountCache[acc.ID] = len(doc.Accounts)
 			doc.Accounts = append(doc.Accounts, acc)
 
 		case "#KTYP":
-			idx, ok := accountCache[words[1]]
+			accID := tryParseInt(words[1])
+			idx, ok := accountCache[accID]
 			if !ok {
 				return nil, fmt.Errorf("unknown account %q", words[1])
 			}
@@ -82,7 +83,8 @@ func Parse(r io.Reader) (*Document, error) {
 			if err != nil {
 				return nil, err
 			}
-			idx, ok := accountCache[words[2]]
+			accID := tryParseInt(words[2])
+			idx, ok := accountCache[accID]
 			if !ok {
 				return nil, fmt.Errorf("unknown account %q", words[2])
 			}
@@ -96,7 +98,8 @@ func Parse(r io.Reader) (*Document, error) {
 			if err != nil {
 				return nil, err
 			}
-			idx, ok := accountCache[words[2]]
+			accID := tryParseInt(words[2])
+			idx, ok := accountCache[accID]
 			if !ok {
 				return nil, fmt.Errorf("unknown account %q", words[2])
 			}
@@ -138,8 +141,9 @@ func Parse(r io.Reader) (*Document, error) {
 			if err != nil {
 				return nil, err
 			}
+			accID := tryParseInt(words[1])
 			trans := Transaction{
-				Account:     words[1],
+				AccountID:   accID,
 				Amount:      amount,
 				Annotations: annotations,
 			}
@@ -180,4 +184,9 @@ func maybeUnquote(s string) string {
 		return r
 	}
 	return s
+}
+
+func tryParseInt(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
 }

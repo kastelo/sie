@@ -72,16 +72,11 @@ type Document struct {
 }
 
 type Account struct {
-	ID          string
+	ID          int
 	Type        string
 	Description string
 	InBalance   Decimal
 	OutBalance  Decimal
-}
-
-func (a *Account) IDInt() int {
-	id, _ := strconv.Atoi(a.ID[:4])
-	return id
 }
 
 type Entry struct {
@@ -93,7 +88,7 @@ type Entry struct {
 }
 
 type Transaction struct {
-	Account     string
+	AccountID   int
 	Annotations []Annotation
 	Amount      Decimal
 }

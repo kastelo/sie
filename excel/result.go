@@ -2,7 +2,6 @@ package excel
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -142,7 +141,7 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 
 		newSec := -1
 		for i, sec := range sections {
-			id := acc.IDInt()
+			id := acc.ID
 			if sec.start <= id && id <= sec.end {
 				newSec = i
 				break
@@ -191,9 +190,8 @@ func cell(col rune, row int) string {
 	return fmt.Sprintf("%c%d", col, row)
 }
 
-func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id, descr string, starts, ends time.Time, bal *balance) {
-	idInt, _ := strconv.Atoi(id)
-	_ = xlsx.SetCellInt(sheet, cell('A', row), idInt)
+func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id int, descr string, starts, ends time.Time, bal *balance) {
+	_ = xlsx.SetCellInt(sheet, cell('A', row), id)
 	_ = xlsx.SetCellValue(sheet, cell('B', row), descr)
 	t := starts
 	col := 'C'
