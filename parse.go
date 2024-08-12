@@ -14,7 +14,7 @@ import (
 )
 
 func Parse(r io.Reader) (*Document, error) {
-	r = charmap.CodePage850.NewDecoder().Reader(r)
+	r = charmap.CodePage437.NewDecoder().Reader(r)
 
 	var doc Document
 	var curVer Entry
