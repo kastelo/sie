@@ -32,9 +32,6 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.ProgramName = words[1]
 			doc.ProgramVersion = words[2]
 
-		case "#FORMAT":
-			doc.Format = words[1]
-
 		case "#GEN":
 			if len(words) >= 2 {
 				date, err := time.Parse("20060102", words[1])

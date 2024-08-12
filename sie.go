@@ -58,7 +58,6 @@ func ParseDecimal(s string) (Decimal, error) {
 type Document struct {
 	ProgramName    string
 	ProgramVersion string
-	Format         string
 	GeneratedAt    time.Time
 	GeneratedBy    string
 	Type           string

@@ -13,7 +13,6 @@ func TestParse(t *testing.T) {
 	expected := &Document{
 		ProgramName:    "SpeedLedger e-bokföring",
 		ProgramVersion: "2.0",
-		Format:         "PC8",
 		GeneratedAt:    time.Date(2017, 3, 5, 0, 0, 0, 0, time.UTC),
 		GeneratedBy:    "Jakob Borg",
 		Type:           "4",
