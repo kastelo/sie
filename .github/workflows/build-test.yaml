@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and test
 
 on:
   push:
@@ -7,8 +7,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build and Release
+  build-and-test:
+    name: Build and test
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,3 @@ jobs:
       - name: Build & test
         run: |
           go test -v ./...
-
-      - uses: go-semantic-release/action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
