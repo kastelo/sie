@@ -2,6 +2,7 @@ package excel
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -25,6 +26,18 @@ var sections = []section{
 	{"Av- och nedskrivningar", 7700, 7899},
 	{"Övriga rörelsekostnader", 7900, 7999},
 	{"Finansiella poster", 8000, 8998},
+}
+
+type summary struct {
+	name        string
+	sectionIdxs []int
+	afterIdx    int
+}
+
+var summaries = []summary{
+	{"Rörelsens intäkter", []int{0, 1, 2}, 2},
+	{"Rörelsens kostnader", []int{3, 4, 5}, 5},
+	{"Rörelseresultat", []int{0, 1, 2, 3, 4, 5}, 5},
 }
 
 func ResultXLSX(doc *sie.Document) ([]byte, error) {
@@ -129,6 +142,7 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	})
 
 	accountBalance := balances(doc)
+	summarySumRows := make(map[string][]int)
 	for _, acc := range doc.Accounts {
 		bal, ok := accountBalance[acc.ID]
 		if !ok {
@@ -154,9 +168,23 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 
 		if newSec != sec {
 			if sec != -1 {
+				for _, sum := range summaries {
+					if slices.Contains(sum.sectionIdxs, sec) {
+						summarySumRows[sum.name] = append(summarySumRows[sum.name], row)
+					}
+				}
+
 				xlsxSumMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends, startRow)
 				sumRows = append(sumRows, row)
 				row++
+
+				for _, sum := range summaries {
+					if sum.afterIdx == sec {
+						row++
+						xlsxSectionSum(xlsx, sheet, row, sum.name, doc.Starts, doc.Ends, summarySumRows[sum.name])
+						row++
+					}
+				}
 			}
 
 			row++
@@ -260,6 +288,14 @@ func textAlignment(a string) *excelize.Style {
 	return &excelize.Style{
 		Alignment: &excelize.Alignment{
 			Horizontal: a,
+		},
+	}
+}
+
+func verticalCenter() *excelize.Style {
+	return &excelize.Style{
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
 		},
 	}
 }
@@ -401,6 +437,29 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("bottom")))
 	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
+}
+
+func xlsxSectionSum(xlsx *excelize.File, sheet string, row int, hdr string, starts, ends time.Time, sumRows []int) {
+	_ = xlsx.SetCellValue(sheet, cell('B', row), hdr)
+
+	// sum
+
+	t := starts
+	col := 'C'
+	for t.Before(ends) {
+		_ = xlsx.SetCellFormula(sheet, cell(col, row), sumcells(col, sumRows))
+		col++
+		t = t.AddDate(0, 1, 0)
+	}
+	col++
+	_ = xlsx.SetCellFormula(sheet, cell(col, row), sumcells(col, sumRows))
+	ecol := col
+
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), verticalCenter(), fontBold(), customNumberFormat(), thickBorder("top", "bottom")))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol-1, row), style)
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), verticalCenter(), fontBoldItalic(), customNumberFormat(), thickBorder("top", "bottom")))
+	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
+	_ = xlsx.SetRowHeight(sheet, row, 20)
 }
 
 func sumFormula(v []sie.Decimal) string {
