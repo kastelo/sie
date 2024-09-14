@@ -21,4 +21,12 @@ func main() {
 	if err := os.WriteFile("result.xlsx", bs, 0o644); err != nil {
 		slog.Error("Error writing Excel file", "error", err)
 	}
+
+	bs, err = excel.BalanceXLSX(doc)
+	if err != nil {
+		slog.Error("Error creating Excel file", "error", err)
+	}
+	if err := os.WriteFile("balances.xlsx", bs, 0o644); err != nil {
+		slog.Error("Error writing Excel file", "error", err)
+	}
 }
