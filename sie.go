@@ -45,6 +45,10 @@ func ParseDecimal(s string) (Decimal, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to parse %q (whole part): %v", s, err)
 	}
+
+	if len(fracStr) == 1 {
+		fracStr += "0"
+	}
 	frac, err := strconv.ParseInt(fracStr, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("unable to parse %q (fractional part): %v", s, err)
