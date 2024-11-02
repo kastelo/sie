@@ -160,6 +160,9 @@ func Parse(r io.Reader) (*Document, error) {
 		}
 	}
 
+	slices.SortFunc(doc.Accounts, func(a, b Account) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
 	slices.SortFunc(doc.Entries, func(a, b Entry) int {
 		if d := cmp.Compare(a.Date.Unix(), b.Date.Unix()); d != 0 {
 			return d
