@@ -223,7 +223,7 @@ func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id int, descr
 	_ = xlsx.SetCellValue(sheet, cell('B', row), descr)
 	t := starts
 	col := 'C'
-	for t.Before(ends) {
+	for !t.After(ends) {
 		if v := bal.months[t.Format("2006-01")]; len(v) == 1 {
 			_ = xlsx.SetCellValue(sheet, cell(col, row), v[0].Float64())
 		} else if len(v) != 0 {
@@ -338,7 +338,7 @@ func xlsxHeaderMonths(xlsx *excelize.File, sheet string, row int, hdr string, st
 	_ = xlsx.SetCellValue(sheet, cell('B', row), hdr)
 	t := starts
 	col := 'C'
-	for t.Before(ends) {
+	for !t.After(ends) {
 		_ = xlsx.SetCellValue(sheet, cell(col, row), t.Format("2006-01"))
 		col++
 		t = t.AddDate(0, 1, 0)
@@ -361,7 +361,7 @@ func xlsxSumMonths(xlsx *excelize.File, sheet string, row int, hdr string, start
 	_ = xlsx.SetCellValue(sheet, cell('B', row), hdr)
 	t := starts
 	col := 'C'
-	for t.Before(ends) {
+	for !t.After(ends) {
 		_ = xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("SUM(%c%d:%c%d)", col, startRow, col, row-1))
 		col++
 		t = t.AddDate(0, 1, 0)
@@ -393,7 +393,7 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 
 	t := starts
 	col := 'C'
-	for t.Before(ends) {
+	for !t.After(ends) {
 		_ = xlsx.SetCellFormula(sheet, cell(col, row), sumcells(col, sumRows))
 		col++
 		t = t.AddDate(0, 1, 0)
@@ -413,7 +413,7 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	row++
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Kvartalsvis resultat")
 	scol := 'E'
-	for t = starts.AddDate(0, 3, 0); t.Before(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 3, 0) {
+	for t = starts.AddDate(0, 3, 0); !t.After(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 3, 0) {
 		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-2, resultRow, scol, resultRow))
 		scol += 3
 	}
@@ -428,7 +428,7 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	row++
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Halvårsvis resultat")
 	scol = 'H'
-	for t = starts.AddDate(0, 6, 0); t.Before(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 6, 0) {
+	for t = starts.AddDate(0, 6, 0); !t.After(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 6, 0) {
 		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-5, resultRow, scol, resultRow))
 		scol += 6
 	}
@@ -446,7 +446,7 @@ func xlsxSectionSum(xlsx *excelize.File, sheet string, row int, hdr string, star
 
 	t := starts
 	col := 'C'
-	for t.Before(ends) {
+	for !t.After(ends) {
 		_ = xlsx.SetCellFormula(sheet, cell(col, row), sumcells(col, sumRows))
 		col++
 		t = t.AddDate(0, 1, 0)
