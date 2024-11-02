@@ -46,9 +46,9 @@ func writeBalanceSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	var inSum, outSum sie.Decimal
 	var assets, liabilities sie.Decimal
 	row := 1
+
 loop:
 	for _, acc := range doc.Accounts {
-
 		switch {
 		case state == 0 && acc.ID >= 1000 && acc.ID <= 1999:
 			style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thickBorder("top")))
@@ -92,7 +92,7 @@ loop:
 			row++
 			state = 2
 
-		case acc.ID >= 3000 && acc.ID <= 3999:
+		case acc.ID >= 3000:
 			_ = xlsx.SetCellValue(sheet, cell('A', row), "")
 			_ = xlsx.SetCellValue(sheet, cell('B', row), "Summa eget kapital, skulder")
 			_ = xlsx.SetCellValue(sheet, cell('C', row), inSum.Float64())
@@ -136,8 +136,7 @@ loop:
 		_ = xlsx.SetCellStyle(sheet, cell('C', row), cell('E', row), style)
 	}
 
-	result := assets
-	result += liabilities
+	result := assets + liabilities
 
 	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thickBorder("bottom")))
 	_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('E', row), style)
