@@ -88,6 +88,7 @@ type Entry struct {
 	Type         string
 	Date         time.Time
 	Description  string
+	Filed        time.Time
 	Transactions []Transaction
 }
 

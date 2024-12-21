@@ -43,6 +43,7 @@ func TestParse(t *testing.T) {
 				Type:        "A",
 				ID:          "1",
 				Date:        time.Date(2016, 1, 2, 0, 0, 0, 0, time.UTC),
+				Filed:       time.Date(2016, 1, 3, 0, 0, 0, 0, time.UTC),
 				Description: "Aktiekapital",
 				Transactions: []Transaction{
 					{AccountID: 1930, Annotations: []Annotation{{Tag: 2, Text: "FOO"}}, Amount: 50000 * 100},
@@ -52,6 +53,7 @@ func TestParse(t *testing.T) {
 				Type:        "A",
 				ID:          "2",
 				Date:        time.Date(2016, 8, 29, 0, 0, 0, 0, time.UTC),
+				Filed:       time.Date(2016, 8, 30, 0, 0, 0, 0, time.UTC),
 				Description: "Försäkring F",
 				Transactions: []Transaction{
 					{AccountID: 1930, Amount: -1957 * 100},

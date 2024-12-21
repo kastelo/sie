@@ -110,11 +110,16 @@ func Parse(r io.Reader) (*Document, error) {
 			if err != nil {
 				return nil, err
 			}
+			filed, err := time.Parse("20060102", words[5])
+			if err != nil {
+				return nil, err
+			}
 			curVer = Entry{
 				ID:          words[2],
 				Type:        words[1],
 				Date:        date,
 				Description: words[4],
+				Filed:       filed,
 			}
 			if doc.Starts.IsZero() || doc.Starts.After(date) {
 				doc.Starts = date
