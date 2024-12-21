@@ -158,12 +158,12 @@ func balances(doc *sie.Document) map[int]*balance {
 	for _, acc := range doc.Accounts {
 		balances[acc.ID] = newBalance()
 		if acc.InBalance != 0 {
-			balances[acc.ID].add(time.Time{}, acc.InBalance)
+			balances[acc.ID].add(time.Time{}, time.Time{}, acc.InBalance)
 		}
 	}
 	for _, entry := range doc.Entries {
 		for _, tran := range entry.Transactions {
-			balances[tran.AccountID].add(entry.Date, tran.Amount)
+			balances[tran.AccountID].add(entry.Date, entry.Filed, tran.Amount)
 		}
 	}
 	return balances
@@ -171,19 +171,24 @@ func balances(doc *sie.Document) map[int]*balance {
 
 type balance struct {
 	total  sie.Decimal
-	months map[string][]sie.Decimal
+	months map[string][]cellValue
+}
+
+type cellValue struct {
+	amount sie.Decimal
+	when   time.Time
 }
 
 func newBalance() *balance {
 	return &balance{
-		months: make(map[string][]sie.Decimal),
+		months: make(map[string][]cellValue),
 	}
 }
 
-func (b *balance) add(date time.Time, amount sie.Decimal) {
+func (b *balance) add(date, filed time.Time, amount sie.Decimal) {
 	b.total += amount
 	key := date.Format("2006-01")
-	b.months[key] = append(b.months[key], amount)
+	b.months[key] = append(b.months[key], cellValue{amount: amount, when: filed})
 }
 
 func (b *balance) inverse() *balance {
@@ -191,7 +196,7 @@ func (b *balance) inverse() *balance {
 	new.total -= b.total
 	for m, v := range b.months {
 		for i := range v {
-			new.months[m] = append(new.months[m], -v[i])
+			new.months[m] = append(new.months[m], cellValue{amount: -v[i].amount, when: v[i].when})
 		}
 	}
 	return new

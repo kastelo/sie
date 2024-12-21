@@ -225,9 +225,16 @@ func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id int, descr
 	col := 'C'
 	for !t.After(ends) {
 		if v := bal.months[t.Format("2006-01")]; len(v) == 1 {
-			_ = xlsx.SetCellValue(sheet, cell(col, row), v[0].Float64())
+			_ = xlsx.SetCellValue(sheet, cell(col, row), v[0].amount.Float64())
 		} else if len(v) != 0 {
 			_ = xlsx.SetCellFormula(sheet, cell(col, row), sumFormula(v))
+		}
+		if style := cellStyle(bal.months[t.Format("2006-01")]); style != nil {
+			style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), customNumberFormat(), style))
+			_ = xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
+		} else {
+			style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), customNumberFormat()))
+			_ = xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
 		}
 		col++
 		t = t.AddDate(0, 1, 0)
@@ -235,9 +242,7 @@ func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id int, descr
 	col++
 
 	_ = xlsx.SetCellFormula(sheet, cell(col, row), fmt.Sprintf("SUM(C%d:%c%d)", row, col-1, row))
-	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), customNumberFormat()))
-	_ = xlsx.SetCellStyle(sheet, cell('C', row), cell(col, row), style)
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
+	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
 	_ = xlsx.SetCellStyle(sheet, cell(col, row), cell(col, row), style)
 }
 
@@ -322,6 +327,16 @@ func thickBorder(where ...string) *excelize.Style {
 		})
 	}
 	return s
+}
+
+func highlight() *excelize.Style {
+	return &excelize.Style{
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#FFFF50"},
+			Pattern: 1,
+		},
+	}
 }
 
 func mergeStyles(ext ...*excelize.Style) *excelize.Style {
@@ -462,17 +477,33 @@ func xlsxSectionSum(xlsx *excelize.File, sheet string, row int, hdr string, star
 	_ = xlsx.SetRowHeight(sheet, row, 20)
 }
 
-func sumFormula(v []sie.Decimal) string {
+func sumFormula(v []cellValue) string {
 	var b strings.Builder
 	for i, d := range v {
 		switch {
-		case i > 0 && d >= 0:
+		case i > 0 && d.amount >= 0:
 			b.WriteString(" + ")
-		case i > 0 && d < 0:
+		case i > 0 && d.amount < 0:
 			b.WriteString(" - ")
-			d = -d
+			d.amount = -d.amount
 		}
-		fmt.Fprintf(&b, "%v", d.Float64())
+		fmt.Fprintf(&b, "%v", d.amount.Float64())
 	}
 	return b.String()
+}
+
+func cellStyle(v []cellValue) *excelize.Style {
+	if len(v) == 0 {
+		return nil
+	}
+	var latest time.Time
+	for _, d := range v {
+		if d.when.After(latest) {
+			latest = d.when
+		}
+	}
+	if latest.After(time.Now().AddDate(0, 0, -7)) {
+		return highlight()
+	}
+	return nil
 }
