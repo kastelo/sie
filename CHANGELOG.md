@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.0](https://github.com/kastelo/sie/compare/v1.11.2...v1.12.0) (2024-12-21)
+
+
+### Features
+
+* **excel:** highlight cells changed last week ([4671b7b](https://github.com/kastelo/sie/commit/4671b7ba40e40692e3e75a5aa2c50abad20272b2))
+* parse filed timestamp ([278939c](https://github.com/kastelo/sie/commit/278939c18cd9e2998bb758cef1a596afb8e484d9))
+
 ## [1.11.2](https://github.com/kastelo/sie/compare/v1.11.1...v1.11.2) (2024-11-02)
 
 
