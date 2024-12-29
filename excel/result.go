@@ -44,7 +44,6 @@ var currentCapitalAccounts = []int{
 	2081, // aktiekapital
 	2091, // balanserat eget kapital
 	2098, // förra årets resultat
-	2099, // årets resultat
 }
 
 func ResultXLSX(doc *sie.Document) ([]byte, error) {
@@ -221,7 +220,7 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	sumRows = append(sumRows, row)
 	row++
 	row++
-	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows, inCapital)
+	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows, accountBalance, inCapital)
 	row++
 	row++
 
@@ -416,7 +415,7 @@ func sumcells(col rune, rows []int) string {
 	return b.String()
 }
 
-func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int, inCapital sie.Decimal) {
+func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int, accountBalances map[int]*balance, inCapital sie.Decimal) {
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Resultat")
 
 	// sum
@@ -444,16 +443,25 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Eget kapital")
 	scol := 'C'
 	for t = starts; !t.After(ends); t = t.AddDate(0, 1, 0) {
+		capital := inCapital
+		for _, acc := range currentCapitalAccounts {
+			if month := accountBalances[acc].months[t.Format("2006-01")]; month != nil {
+				for _, cv := range month {
+					capital -= cv.amount
+				}
+			}
+		}
+
 		formula := fmt.Sprintf("%c%d", scol, resultRow)
-		if scol == 'C' {
-			// first month is result plus initial current capital
-			formula += fmt.Sprintf("+%v", inCapital)
-		} else {
-			// subsequent months are result plus previous month's capital
+		if scol != 'C' {
 			formula += fmt.Sprintf("+%c%d", scol-1, row)
+		}
+		if capital != 0 {
+			formula += fmt.Sprintf("+%v", capital)
 		}
 		_ = xlsx.SetCellFormula(sheet, cell(scol, row), formula)
 		scol++
+		inCapital = 0 // only add inCapital once
 	}
 
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
