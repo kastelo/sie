@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/kastelo/sie/compare/v1.13.0...v1.13.1) (2024-12-29)
+
+
+### Bug Fixes
+
+* **excel:** simplify and correct capital calculation ([84a6b05](https://github.com/kastelo/sie/commit/84a6b0562bf0aae37830d251af73a13d5061be8b))
+
 ## [1.13.0](https://github.com/kastelo/sie/compare/v1.12.0...v1.13.0) (2024-12-29)
 
 
