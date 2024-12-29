@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/kastelo/sie/compare/v1.12.0...v1.13.0) (2024-12-29)
+
+
+### Features
+
+* **excel:** add row for capital ([fce272e](https://github.com/kastelo/sie/commit/fce272e22c893d1d6c5e7765957e1217095ce3ef))
+
 ## [1.12.0](https://github.com/kastelo/sie/compare/v1.11.2...v1.12.0) (2024-12-21)
 
 
