@@ -127,6 +127,14 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	ey, em, _ := doc.Ends.Date()
 	numMonths := (ey-sy)*12 + int(em) - int(sm) + 1
 
+	// Eget kapital vid årets ingång
+	var inCapital sie.Decimal
+	for _, acc := range doc.Accounts {
+		if acc.ID == 2081 || acc.ID == 2091 {
+			inCapital -= acc.InBalance
+		}
+	}
+
 	style, _ := xlsx.NewStyle(defaultStyle())
 	_ = xlsx.SetCellStyle(sheet, cell('A', 1), cell('A'+rune(numMonths)+5, 1000), style)
 
@@ -206,7 +214,7 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	sumRows = append(sumRows, row)
 	row++
 	row++
-	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows)
+	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows, accountBalance, inCapital)
 	row++
 	row++
 
@@ -401,7 +409,7 @@ func sumcells(col rune, rows []int) string {
 	return b.String()
 }
 
-func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int) {
+func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int, accountBalances map[int]*balance, inCapital sie.Decimal) {
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Resultat")
 
 	// sum
@@ -423,11 +431,40 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
 	resultRow := row
 
+	// eget kapital
+
+	row++
+	_ = xlsx.SetCellValue(sheet, cell('B', row), "Eget kapital")
+	scol := 'C'
+	for t = starts; !t.After(ends); t = t.AddDate(0, 1, 0) {
+		capital := inCapital
+		for _, acc := range []int{2081, 2091} {
+			if month := accountBalances[acc].months[t.Format("2006-01")]; month != nil {
+				for _, cv := range month {
+					capital -= cv.amount
+				}
+			}
+		}
+		formula := fmt.Sprintf("%c%d", scol, resultRow)
+		if scol != 'C' {
+			formula += fmt.Sprintf("+%c%d", scol-1, row)
+		}
+		if capital != 0 {
+			formula += fmt.Sprintf("+%v", capital)
+		}
+		_ = xlsx.SetCellFormula(sheet, cell(scol, row), formula)
+		scol++
+		inCapital = 0 // only add initial capital on the first iterator
+	}
+
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
+
 	// quarterly sums
 
 	row++
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Kvartalsvis resultat")
-	scol := 'E'
+	scol = 'E'
 	for t = starts.AddDate(0, 3, 0); !t.After(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 3, 0) {
 		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-2, resultRow, scol, resultRow))
 		scol += 3
