@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.2](https://github.com/kastelo/sie/compare/v1.13.1...v1.13.2) (2024-12-29)
+
+
+### Bug Fixes
+
+* **excel:** handle dividends etc in capital calc ([9c4c11a](https://github.com/kastelo/sie/commit/9c4c11afa003555d8ef41f82eb4a5355159e4583))
+
 ## [1.13.1](https://github.com/kastelo/sie/compare/v1.13.0...v1.13.1) (2024-12-29)
 
 
