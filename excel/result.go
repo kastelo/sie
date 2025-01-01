@@ -56,7 +56,7 @@ func ResultXLSX(doc *sie.Document) ([]byte, error) {
 	})
 
 	sheet := xlsx.GetSheetName(xlsx.GetActiveSheetIndex())
-	writeSheet(xlsx, sheet, doc)
+	writeSheet(xlsx, sheet, doc, true)
 	_ = xlsx.SetSheetName(sheet, "Totalt")
 
 	// For each annotation, create a new sheet
@@ -92,7 +92,7 @@ func ResultXLSX(doc *sie.Document) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		writeSheet(xlsx, adoc.name, adoc.doc)
+		writeSheet(xlsx, adoc.name, adoc.doc, false)
 	}
 
 	// If there were annotations, also produce a sheet for whatever remains
@@ -100,7 +100,7 @@ func ResultXLSX(doc *sie.Document) ([]byte, error) {
 	if len(doc.Annotations) > 0 {
 		cpy := doc.CopyWithoutAnnotations()
 		_, _ = xlsx.NewSheet("(Other)")
-		writeSheet(xlsx, "(Other)", cpy)
+		writeSheet(xlsx, "(Other)", cpy, false)
 	}
 
 	xlsx.SetActiveSheet(0)
@@ -120,7 +120,7 @@ func ResultXLSX(doc *sie.Document) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
+func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document, withCapital bool) {
 	sec := -1
 	row := 1
 	startRow := 1
@@ -220,7 +220,7 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	sumRows = append(sumRows, row)
 	row++
 	row++
-	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows, accountBalance, inCapital)
+	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows, withCapital, accountBalance, inCapital)
 	row++
 	row++
 
@@ -415,7 +415,7 @@ func sumcells(col rune, rows []int) string {
 	return b.String()
 }
 
-func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int, accountBalances map[int]*balance, inCapital sie.Decimal) {
+func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int, withCapital bool, accountBalances map[int]*balance, inCapital sie.Decimal) {
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Resultat")
 
 	// sum
@@ -437,41 +437,11 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
 	resultRow := row
 
-	// eget kapital
-
-	row++
-	_ = xlsx.SetCellValue(sheet, cell('B', row), "Eget kapital")
-	scol := 'C'
-	for t = starts; !t.After(ends); t = t.AddDate(0, 1, 0) {
-		capital := inCapital
-		for _, acc := range currentCapitalAccounts {
-			if month := accountBalances[acc].months[t.Format("2006-01")]; month != nil {
-				for _, cv := range month {
-					capital -= cv.amount
-				}
-			}
-		}
-
-		formula := fmt.Sprintf("%c%d", scol, resultRow)
-		if scol != 'C' {
-			formula += fmt.Sprintf("+%c%d", scol-1, row)
-		}
-		if capital != 0 {
-			formula += fmt.Sprintf("+%v", capital)
-		}
-		_ = xlsx.SetCellFormula(sheet, cell(scol, row), formula)
-		scol++
-		inCapital = 0 // only add inCapital once
-	}
-
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
-	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
-
 	// quarterly sums
 
 	row++
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Kvartalsvis resultat")
-	scol = 'E'
+	scol := 'E'
 	for t = starts.AddDate(0, 3, 0); !t.After(ends.AddDate(0, 1, 0)); t = t.AddDate(0, 3, 0) {
 		_ = xlsx.SetCellFormula(sheet, cell(scol, row), fmt.Sprintf("SUM(%c%d:%c%d)", scol-2, resultRow, scol, resultRow))
 		scol += 3
@@ -496,6 +466,39 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("bottom")))
 	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
+
+	// eget kapital
+
+	if withCapital {
+		row++
+		row++
+		_ = xlsx.SetCellValue(sheet, cell('B', row), "Eget kapital")
+		scol := 'C'
+		for t = starts; !t.After(ends); t = t.AddDate(0, 1, 0) {
+			capital := inCapital
+			for _, acc := range currentCapitalAccounts {
+				if month := accountBalances[acc].months[t.Format("2006-01")]; month != nil {
+					for _, cv := range month {
+						capital -= cv.amount
+					}
+				}
+			}
+
+			formula := fmt.Sprintf("%c%d", scol, resultRow)
+			if scol != 'C' {
+				formula += fmt.Sprintf("+%c%d", scol-1, row)
+			}
+			if capital != 0 {
+				formula += fmt.Sprintf("+%v", capital)
+			}
+			_ = xlsx.SetCellFormula(sheet, cell(scol, row), formula)
+			scol++
+			inCapital = 0 // only add inCapital once
+		}
+
+		style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
+		_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
+	}
 }
 
 func xlsxSectionSum(xlsx *excelize.File, sheet string, row int, hdr string, starts, ends time.Time, sumRows []int) {
