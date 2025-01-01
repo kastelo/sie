@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.3](https://github.com/kastelo/sie/compare/v1.13.2...v1.13.3) (2025-01-01)
+
+
+### Bug Fixes
+
+* **excel:** only show capital on main sheet ([a11b7f3](https://github.com/kastelo/sie/commit/a11b7f34a91a8e5ebb1fe9d7e91a9946b77ac49e))
+
 ## [1.13.2](https://github.com/kastelo/sie/compare/v1.13.1...v1.13.2) (2024-12-29)
 
 
