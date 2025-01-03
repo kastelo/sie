@@ -477,10 +477,12 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 		for t = starts; !t.After(ends); t = t.AddDate(0, 1, 0) {
 			capital := inCapital
 			for _, acc := range currentCapitalAccounts {
-				if month := accountBalances[acc].months[t.Format("2006-01")]; month != nil {
-					for _, cv := range month {
-						capital -= cv.amount
-					}
+				bal := accountBalances[acc]
+				if bal == nil {
+					continue
+				}
+				for _, cv := range bal.months[t.Format("2006-01")] {
+					capital -= cv.amount
 				}
 			}
 
