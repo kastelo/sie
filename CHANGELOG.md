@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.4](https://github.com/kastelo/sie/compare/v1.13.3...v1.13.4) (2025-01-03)
+
+
+### Bug Fixes
+
+* **excel:** handle missing account balance ([5316cbf](https://github.com/kastelo/sie/commit/5316cbf063e57e8f0607e72e9700d56eb0452199))
+
 ## [1.13.3](https://github.com/kastelo/sie/compare/v1.13.2...v1.13.3) (2025-01-01)
 
 
