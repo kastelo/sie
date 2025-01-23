@@ -54,7 +54,11 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.CompanyName = words[1]
 
 		case "#RAR":
-			// not handled
+			if words[1] == "0" {
+				// Current fiscal year
+				doc.Starts, _ = time.Parse("20060102", words[2])
+				doc.Ends, _ = time.Parse("20060102", words[3])
+			}
 
 		case "#KPTYP":
 			doc.AccountPlan = words[1]

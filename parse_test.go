@@ -19,8 +19,8 @@ func TestParse(t *testing.T) {
 		OrgNo:          "123456-7890",
 		CompanyName:    "Kastelo AB",
 		AccountPlan:    "EUBAS97",
-		Starts:         time.Date(2016, 1, 2, 0, 0, 0, 0, time.UTC),
-		Ends:           time.Date(2016, 8, 29, 0, 0, 0, 0, time.UTC),
+		Starts:         time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC),
+		Ends:           time.Date(2016, 12, 31, 0, 0, 0, 0, time.UTC),
 		Accounts: []Account{
 			{
 				ID: 1930, Type: "T", Description: "Bankkonto",
