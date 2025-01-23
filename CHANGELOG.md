@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.5](https://github.com/kastelo/sie/compare/v1.13.4...v1.13.5) (2025-01-23)
+
+
+### Bug Fixes
+
+* parse fiscal year boundaries ([754bbc8](https://github.com/kastelo/sie/commit/754bbc84591ce87211d3b0f54b0d409fb01ff00d))
+
 ## [1.13.4](https://github.com/kastelo/sie/compare/v1.13.3...v1.13.4) (2025-01-03)
 
 
