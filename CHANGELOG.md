@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.6](https://github.com/kastelo/sie/compare/v1.13.5...v1.13.6) (2025-03-23)
+
+
+### Bug Fixes
+
+* skip empty annotations in result sheet ([95a5802](https://github.com/kastelo/sie/commit/95a5802ae39bd883c6eb9a42857a1baf120d7cb0))
+
 ## [1.13.5](https://github.com/kastelo/sie/compare/v1.13.4...v1.13.5) (2025-01-23)
 
 
