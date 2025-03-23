@@ -88,6 +88,9 @@ func ResultXLSX(doc *sie.Document) ([]byte, error) {
 	}
 
 	for _, adoc := range docs {
+		if len(adoc.doc.Entries) == 0 {
+			continue
+		}
 		_, err := xlsx.NewSheet(adoc.name)
 		if err != nil {
 			return nil, err
