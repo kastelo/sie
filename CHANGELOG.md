@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.7](https://github.com/kastelo/sie/compare/v1.13.6...v1.13.7) (2025-07-02)
+
+
+### Bug Fixes
+
+* **excel:** borders on result rows ([709e1ea](https://github.com/kastelo/sie/commit/709e1ea54558a237982d7f58a51f86e8f0dff69e))
+
 ## [1.13.6](https://github.com/kastelo/sie/compare/v1.13.5...v1.13.6) (2025-03-23)
 
 
