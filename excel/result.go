@@ -450,10 +450,8 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 		scol += 3
 	}
 
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat()))
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
 	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat()))
-	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
 
 	// half year sums
 
@@ -465,10 +463,8 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 		scol += 6
 	}
 
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("bottom")))
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top", "bottom")))
 	_ = xlsx.SetCellStyle(sheet, cell('B', row), cell(ecol, row), style)
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBoldItalic(), customNumberFormat(), thickBorder("bottom")))
-	_ = xlsx.SetCellStyle(sheet, cell(ecol, row), cell(ecol, row), style)
 
 	// eget kapital
 
