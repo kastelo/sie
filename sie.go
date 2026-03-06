@@ -19,7 +19,13 @@ func (d Decimal) String() string {
 
 func (d Decimal) FloatString(decimals int) string {
 	if decimals <= 0 {
-		return fmt.Sprintf("%d", (d+50)/100)
+		r := d / 100
+		if d%100 >= 50 {
+			r++
+		} else if d%100 <= -50 {
+			r--
+		}
+		return fmt.Sprintf("%d", r)
 	}
 	abs := d
 	if d < 0 {

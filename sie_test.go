@@ -95,6 +95,7 @@ func TestDecimalJSONValues(t *testing.T) {
 		{25050, "250.50"},
 		{-25050, "-250.50"},
 		{1000000, "10000"},
+		{-1000000, "-10000"},
 	}
 
 	for _, c := range cases {
