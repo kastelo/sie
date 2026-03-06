@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/kastelo/sie/compare/v1.14.0...v1.14.1) (2026-03-06)
+
+
+### Bug Fixes
+
+* correctly handle zero negative decimals ([5c8a3dc](https://github.com/kastelo/sie/commit/5c8a3dcbca0c343e5d07f7a67c95c93437df55ef))
+
 ## [1.14.0](https://github.com/kastelo/sie/compare/v1.13.7...v1.14.0) (2026-03-06)
 
 
