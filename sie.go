@@ -2,6 +2,7 @@ package sie
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -35,6 +36,16 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	return []byte(d.String()), nil
 }
 
+func (d *Decimal) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return fmt.Errorf("unable to parse decimal %q: %v", s, err)
+	}
+	*d = Decimal(math.Round(f * 100))
+	return nil
+}
+
 func ParseDecimal(s string) (Decimal, error) {
 	wholeStr, fracStr, ok := strings.Cut(s, ".")
 	if !ok {
@@ -60,48 +71,48 @@ func ParseDecimal(s string) (Decimal, error) {
 }
 
 type Document struct {
-	ProgramName    string
-	ProgramVersion string
-	GeneratedAt    time.Time
-	GeneratedBy    string
-	Type           string
-	OrgNo          string
-	CompanyName    string
-	AccountPlan    string
-	Accounts       []Account
-	Entries        []Entry
-	Starts         time.Time
-	Ends           time.Time
-	Annotations    []Annotation
+	ProgramName    string       `json:"programName"`
+	ProgramVersion string       `json:"programVersion"`
+	GeneratedAt    time.Time    `json:"generatedAt"`
+	GeneratedBy    string       `json:"generatedBy"`
+	Type           string       `json:"type"`
+	OrgNo          string       `json:"orgNo"`
+	CompanyName    string       `json:"companyName"`
+	AccountPlan    string       `json:"accountPlan"`
+	Accounts       []Account    `json:"accounts"`
+	Entries        []Entry      `json:"entries"`
+	Starts         time.Time    `json:"starts"`
+	Ends           time.Time    `json:"ends"`
+	Annotations    []Annotation `json:"annotations"`
 }
 
 type Account struct {
-	ID          int
-	Type        string
-	Description string
-	InBalance   Decimal
-	OutBalance  Decimal
+	ID          int     `json:"id"`
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	InBalance   Decimal `json:"inBalance"`
+	OutBalance  Decimal `json:"outBalance"`
 }
 
 type Entry struct {
-	ID           string
-	Type         string
-	Date         time.Time
-	Description  string
-	Filed        time.Time
-	Transactions []Transaction
+	ID           string        `json:"id"`
+	Type         string        `json:"type"`
+	Date         time.Time     `json:"date"`
+	Description  string        `json:"description"`
+	Filed        time.Time     `json:"filed"`
+	Transactions []Transaction `json:"transactions"`
 }
 
 type Transaction struct {
-	AccountID   int
-	Annotations []Annotation
-	Amount      Decimal
+	AccountID   int          `json:"accountId"`
+	Annotations []Annotation `json:"annotations"`
+	Amount      Decimal      `json:"amount"`
 }
 
 type Annotation struct {
-	Tag         int
-	Text        string
-	Description string
+	Tag         int    `json:"tag"`
+	Text        string `json:"text"`
+	Description string `json:"description"`
 }
 
 func (a Annotation) Equals(other Annotation) bool {
