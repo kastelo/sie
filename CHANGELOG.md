@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/kastelo/sie/compare/v1.13.7...v1.14.0) (2026-03-06)
+
+
+### Features
+
+* enable JSON serialisation ([7bb45a7](https://github.com/kastelo/sie/commit/7bb45a72f38d942038a1140bb9a2d326b2985c2f))
+
 ## [1.13.7](https://github.com/kastelo/sie/compare/v1.13.6...v1.13.7) (2025-07-02)
 
 
