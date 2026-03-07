@@ -111,14 +111,14 @@ type Entry struct {
 
 type Transaction struct {
 	AccountID   int          `json:"accountId"`
-	Annotations []Annotation `json:"annotations"`
+	Annotations []Annotation `json:"annotations,omitempty"`
 	Amount      Decimal      `json:"amount"`
 }
 
 type Annotation struct {
 	Tag         int    `json:"tag"`
-	Text        string `json:"text"`
-	Description string `json:"description"`
+	Text        string `json:"text,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 func (a Annotation) Equals(other Annotation) bool {
