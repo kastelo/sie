@@ -68,8 +68,8 @@ func ResultXLSX(doc *sie.Document) ([]byte, error) {
 
 	var docs []annotatedDoc
 	for _, annotation := range doc.Annotations {
-		doc.CopyForAnnotation(annotation)
-		if len(doc.Entries) == 0 {
+		filtered := doc.CopyForAnnotation(annotation)
+		if len(filtered.Entries) == 0 {
 			continue
 		}
 
@@ -77,13 +77,13 @@ func ResultXLSX(doc *sie.Document) ([]byte, error) {
 		found := false
 		for i := range docs {
 			if docs[i].name == name {
-				docs[i].doc.AddEntriesFrom(doc.CopyForAnnotation(annotation))
+				docs[i].doc.AddEntriesFrom(filtered)
 				found = true
 				break
 			}
 		}
 		if !found {
-			docs = append(docs, annotatedDoc{name, doc.CopyForAnnotation(annotation)})
+			docs = append(docs, annotatedDoc{name, filtered})
 		}
 	}
 
