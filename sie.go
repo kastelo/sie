@@ -53,6 +53,8 @@ func (d *Decimal) UnmarshalJSON(b []byte) error {
 }
 
 func ParseDecimal(s string) (Decimal, error) {
+	neg := strings.HasPrefix(s, "-")
+
 	wholeStr, fracStr, ok := strings.Cut(s, ".")
 	if !ok {
 		wholeStr = s
@@ -63,6 +65,15 @@ func ParseDecimal(s string) (Decimal, error) {
 		return 0, fmt.Errorf("unable to parse %q (whole part): %v", s, err)
 	}
 
+	// Normalize fractional part to exactly 2 digits (truncate >2, pad <2),
+	// then round based on the third digit if present.
+	round := int64(0)
+	if len(fracStr) > 2 {
+		if fracStr[2] >= '5' {
+			round = 1
+		}
+		fracStr = fracStr[:2]
+	}
 	if len(fracStr) == 1 {
 		fracStr += "0"
 	}
@@ -70,7 +81,9 @@ func ParseDecimal(s string) (Decimal, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to parse %q (fractional part): %v", s, err)
 	}
-	if whole < 0 {
+	frac += round
+
+	if neg {
 		frac = -frac
 	}
 	return Decimal(whole*100 + frac), nil

@@ -20,6 +20,13 @@ func TestParseDecimal(t *testing.T) {
 		{"-9.50", true, -950},
 		{"9.5", true, 950},
 		{"-9.5", true, -950},
+		{"-0.50", true, -50},
+		{"-0.5", true, -50},
+		{"1.125", true, 113},
+		{"-1.125", true, -113},
+		{"1.999", true, 200},
+		{"1.1", true, 110},
+		{"1.100", true, 110},
 		{"banana", false, 0},
 		{"1..2", false, 0},
 	}
