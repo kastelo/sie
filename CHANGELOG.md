@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.14.2](https://github.com/kastelo/sie/compare/v1.14.1...v1.14.2) (2026-03-07)
+
+
+### Bug Fixes
+
+* annotation handling in result sheet ([1fc9260](https://github.com/kastelo/sie/commit/1fc9260e37394f8ed9fe1f6dc9f2a8066e50b529))
+* cmd/report error handling ([2d45857](https://github.com/kastelo/sie/commit/2d4585788faeb0cf8fdc10f9d38bf758ab2b312c))
+* further ParseDecimal fixes ([d64ee5e](https://github.com/kastelo/sie/commit/d64ee5eaf5c9414cf3f42336e3e85eb536f0ef26))
+
 ## [1.14.1](https://github.com/kastelo/sie/compare/v1.14.0...v1.14.1) (2026-03-06)
 
 
