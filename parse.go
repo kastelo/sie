@@ -165,6 +165,13 @@ func Parse(r io.Reader) (*Document, error) {
 			doc.Annotations = append(doc.Annotations, Annotation{Tag: tag, Text: text, Description: description})
 
 		case "}":
+			var tot Decimal
+			for _, t := range curVer.Transactions {
+				tot += t.Amount
+			}
+			if tot != 0 {
+				return nil, fmt.Errorf("unbalanced voucher %v: %v", curVer, tot)
+			}
 			doc.Entries = append(doc.Entries, curVer)
 		}
 	}
