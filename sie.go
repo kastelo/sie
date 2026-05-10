@@ -11,23 +11,23 @@ import (
 
 func (d *Decimal) FloatString(decimals int) string {
 	if decimals <= 0 {
-		r := d.Cents / 100
-		if d.Cents%100 >= 50 {
+		r := d.GetCents() / 100
+		if d.GetCents()%100 >= 50 {
 			r++
-		} else if d.Cents%100 <= -50 {
+		} else if d.GetCents()%100 <= -50 {
 			r--
 		}
 		return fmt.Sprintf("%d", r)
 	}
-	abs := d.Cents
-	if d.Cents < 0 {
-		abs = -d.Cents
+	abs := d.GetCents()
+	if abs < 0 {
+		abs = -abs
 	}
-	return fmt.Sprintf("%d.%0*d", d.Cents/100, decimals, abs%100)
+	return fmt.Sprintf("%d.%0*d", d.GetCents()/100, decimals, abs%100)
 }
 
 func (d *Decimal) Float64() float64 {
-	return float64(d.Cents) / 100
+	return float64(d.GetCents()) / 100
 }
 
 func (d *Decimal) MarshalJSON() ([]byte, error) {
@@ -45,23 +45,23 @@ func (d *Decimal) UnmarshalJSON(b []byte) error {
 }
 
 func (d *Decimal) Set(o *Decimal) {
-	d.Cents = o.Cents
+	d.Cents = o.GetCents()
 }
 
 func (d *Decimal) Copy() *Decimal {
-	return &Decimal{Cents: d.Cents}
+	return &Decimal{Cents: d.GetCents()}
 }
 
 func (d *Decimal) Adding(o *Decimal) *Decimal {
-	return &Decimal{Cents: d.Cents + o.Cents}
+	return &Decimal{Cents: d.GetCents() + o.GetCents()}
 }
 
 func (d *Decimal) Subtracting(o *Decimal) *Decimal {
-	return &Decimal{Cents: d.Cents - o.Cents}
+	return &Decimal{Cents: d.GetCents() - o.GetCents()}
 }
 
 func (d *Decimal) Inverse() *Decimal {
-	return &Decimal{Cents: -d.Cents}
+	return &Decimal{Cents: -d.GetCents()}
 }
 
 func ParseDecimal(s string) (*Decimal, error) {

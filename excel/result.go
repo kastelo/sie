@@ -489,8 +489,8 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 			if scol != 'C' {
 				formula += fmt.Sprintf("+%c%d", scol-1, row)
 			}
-			if capital.Cents != 0 {
-				formula += fmt.Sprintf("+%v", capital)
+			if capital.GetCents() != 0 {
+				formula += fmt.Sprintf("+%v", capital.Float64())
 			}
 			_ = xlsx.SetCellFormula(sheet, cell(scol, row), formula)
 			scol++
@@ -529,9 +529,9 @@ func sumFormula(v []cellValue) string {
 	var b strings.Builder
 	for i, d := range v {
 		switch {
-		case i > 0 && d.amount.Cents >= 0:
+		case i > 0 && d.amount.GetCents() >= 0:
 			b.WriteString(" + ")
-		case i > 0 && d.amount.Cents < 0:
+		case i > 0 && d.amount.GetCents() < 0:
 			b.WriteString(" - ")
 			d.amount = d.amount.Inverse()
 		}

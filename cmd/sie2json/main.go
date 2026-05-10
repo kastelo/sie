@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"os"
 	"strings"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"kastelo.dev/sie/v2"
 )
 
@@ -21,10 +23,13 @@ func main() {
 			log.Fatalf("parsing %s: %v", path, err)
 		}
 
-		out, err := json.MarshalIndent(doc, "", "  ")
+		out, err := protojson.Marshal(doc)
 		if err != nil {
 			log.Fatalf("marshalling %s: %v", path, err)
 		}
+		var buf bytes.Buffer
+		_ = json.Indent(&buf, out, "", "  ")
+		out = buf.Bytes()
 
 		outPath := strings.TrimSuffix(path, ".se") + ".json"
 		if err := os.WriteFile(outPath, out, 0o644); err != nil {

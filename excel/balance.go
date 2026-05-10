@@ -110,7 +110,7 @@ loop:
 			break loop
 		}
 
-		if acc.InBalance.Cents == 0 && acc.OutBalance.Cents == 0 {
+		if acc.InBalance.GetCents() == 0 && acc.OutBalance.GetCents() == 0 {
 			continue
 		}
 
@@ -159,7 +159,7 @@ func balances(doc *sie.Document) map[int32]*balance {
 	balances := make(map[int32]*balance)
 	for _, acc := range doc.Accounts {
 		balances[acc.Id] = newBalance()
-		if acc.InBalance.Cents != 0 {
+		if acc.InBalance.GetCents() != 0 {
 			balances[acc.Id].add(time.Time{}, time.Time{}, acc.InBalance)
 		}
 	}
