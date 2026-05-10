@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package sie;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "kastelo.dev/sie";
+
+message Document {
+  string program_name = 1;
+  string program_version = 2;
+  google.protobuf.Timestamp generated_at = 3;
+  string generated_by = 4;
+  string type = 5;
+  string org_no = 6;
+  string company_name = 7;
+  string account_plan = 8;
+  repeated Account accounts = 9;
+  repeated Entry entries = 10;
+  google.protobuf.Timestamp starts = 11;
+  google.protobuf.Timestamp ends = 12;
+  repeated Annotation annotations = 13;
+}
+
+message Account {
+  int32 id = 1;
+  string type = 2;
+  string description = 3;
+  // Amount in cents.
+  Decimal in_balance = 4;
+  Decimal out_balance = 5;
+}
+
+message Entry {
+  string id = 1;
+  string type = 2;
+  google.protobuf.Timestamp date = 3;
+  string description = 4;
+  google.protobuf.Timestamp filed = 5;
+  repeated Transaction transactions = 6;
+}
+
+message Transaction {
+  int32 account_id = 1;
+  repeated Annotation annotations = 2;
+  Decimal amount = 3;
+}
+
+message Annotation {
+  int32 tag = 1;
+  string text = 2;
+  string description = 3;
+}
+
+message Decimal {
+  sint64 cents = 1;
+}

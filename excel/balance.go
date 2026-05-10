@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/xuri/excelize/v2"
-	"kastelo.dev/sie"
+	"kastelo.dev/sie/v2"
 )
 
 func BalanceXLSX(doc *sie.Document) ([]byte, error) {
@@ -43,14 +43,16 @@ func BalanceXLSX(doc *sie.Document) ([]byte, error) {
 
 func writeBalanceSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	state := 0
-	var inSum, outSum sie.Decimal
-	var assets, liabilities sie.Decimal
+	inSum := new(sie.Decimal)
+	outSum := new(sie.Decimal)
+	assets := new(sie.Decimal)
+	liabilities := new(sie.Decimal)
 	row := 1
 
 loop:
 	for _, acc := range doc.Accounts {
 		switch {
-		case state == 0 && acc.ID >= 1000 && acc.ID <= 1999:
+		case state == 0 && acc.Id >= 1000 && acc.Id <= 1999:
 			style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thickBorder("top")))
 			_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('F', row), style)
 			row++
@@ -67,14 +69,14 @@ loop:
 
 			state = 1
 
-		case state == 1 && acc.ID >= 2000 && acc.ID <= 2999:
+		case state == 1 && acc.Id >= 2000 && acc.Id <= 2999:
 			_ = xlsx.SetCellValue(sheet, cell('A', row), "")
 			_ = xlsx.SetCellValue(sheet, cell('B', row), "Summa tillgångar")
 			_ = xlsx.SetCellValue(sheet, cell('C', row), inSum.Float64())
-			_ = xlsx.SetCellValue(sheet, cell('D', row), (outSum - inSum).Float64())
+			_ = xlsx.SetCellValue(sheet, cell('D', row), outSum.Subtracting(inSum).Float64())
 			_ = xlsx.SetCellValue(sheet, cell('E', row), outSum.Float64())
-			inSum = 0
-			outSum = 0
+			inSum.Set(&sie.Decimal{Cents: 0})
+			outSum.Set(&sie.Decimal{Cents: 0})
 			style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
 			_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('E', row), style)
 			row++
@@ -92,14 +94,14 @@ loop:
 			row++
 			state = 2
 
-		case acc.ID >= 3000:
+		case acc.Id >= 3000:
 			_ = xlsx.SetCellValue(sheet, cell('A', row), "")
 			_ = xlsx.SetCellValue(sheet, cell('B', row), "Summa eget kapital, skulder")
 			_ = xlsx.SetCellValue(sheet, cell('C', row), inSum.Float64())
-			_ = xlsx.SetCellValue(sheet, cell('D', row), (outSum - inSum).Float64())
+			_ = xlsx.SetCellValue(sheet, cell('D', row), outSum.Subtracting(inSum).Float64())
 			_ = xlsx.SetCellValue(sheet, cell('E', row), outSum.Float64())
-			inSum = 0
-			outSum = 0
+			inSum.Set(&sie.Decimal{Cents: 0})
+			outSum.Set(&sie.Decimal{Cents: 0})
 			style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("top")))
 			_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('E', row), style)
 			row++
@@ -108,24 +110,24 @@ loop:
 			break loop
 		}
 
-		if acc.InBalance == 0 && acc.OutBalance == 0 {
+		if acc.InBalance.Cents == 0 && acc.OutBalance.Cents == 0 {
 			continue
 		}
 
-		inSum += acc.InBalance
-		outSum += acc.OutBalance
+		inSum.Set(inSum.Adding(acc.InBalance))
+		outSum.Set(outSum.Adding(acc.OutBalance))
 
 		switch state {
 		case 1:
-			assets += acc.OutBalance
+			assets.Set(assets.Adding(acc.OutBalance))
 		case 2:
-			liabilities += acc.OutBalance
+			liabilities.Set(liabilities.Adding(acc.OutBalance))
 		}
 
-		_ = xlsx.SetCellValue(sheet, cell('A', row), acc.ID)
+		_ = xlsx.SetCellValue(sheet, cell('A', row), acc.Id)
 		_ = xlsx.SetCellValue(sheet, cell('B', row), acc.Description)
 		_ = xlsx.SetCellValue(sheet, cell('C', row), acc.InBalance.Float64())
-		_ = xlsx.SetCellValue(sheet, cell('D', row), (acc.OutBalance - acc.InBalance).Float64())
+		_ = xlsx.SetCellValue(sheet, cell('D', row), acc.OutBalance.Subtracting(acc.InBalance).Float64())
 		_ = xlsx.SetCellValue(sheet, cell('E', row), acc.OutBalance.Float64())
 		style, _ := xlsx.NewStyle(mergeStyles(defaultStyle()))
 		_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('B', row), style)
@@ -136,7 +138,7 @@ loop:
 		_ = xlsx.SetCellStyle(sheet, cell('C', row), cell('E', row), style)
 	}
 
-	result := assets + liabilities
+	result := assets.Adding(liabilities)
 
 	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thickBorder("bottom")))
 	_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('E', row), style)
@@ -153,17 +155,17 @@ loop:
 	_ = xlsx.SetCellStyle(sheet, cell('A', row+1), cell('F', row+1), style)
 }
 
-func balances(doc *sie.Document) map[int]*balance {
-	balances := make(map[int]*balance)
+func balances(doc *sie.Document) map[int32]*balance {
+	balances := make(map[int32]*balance)
 	for _, acc := range doc.Accounts {
-		balances[acc.ID] = newBalance()
-		if acc.InBalance != 0 {
-			balances[acc.ID].add(time.Time{}, time.Time{}, acc.InBalance)
+		balances[acc.Id] = newBalance()
+		if acc.InBalance.Cents != 0 {
+			balances[acc.Id].add(time.Time{}, time.Time{}, acc.InBalance)
 		}
 	}
 	for _, entry := range doc.Entries {
 		for _, tran := range entry.Transactions {
-			balances[tran.AccountID].add(entry.Date, entry.Filed, tran.Amount)
+			balances[tran.AccountId].add(entry.Date.AsTime(), entry.Filed.AsTime(), tran.Amount)
 		}
 	}
 	return balances
@@ -175,7 +177,7 @@ type balance struct {
 }
 
 type cellValue struct {
-	amount sie.Decimal
+	amount *sie.Decimal
 	when   time.Time
 }
 
@@ -185,18 +187,18 @@ func newBalance() *balance {
 	}
 }
 
-func (b *balance) add(date, filed time.Time, amount sie.Decimal) {
-	b.total += amount
+func (b *balance) add(date, filed time.Time, amount *sie.Decimal) {
+	b.total.Set(b.total.Adding(amount))
 	key := date.Format("2006-01")
 	b.months[key] = append(b.months[key], cellValue{amount: amount, when: filed})
 }
 
 func (b *balance) inverse() *balance {
 	new := newBalance()
-	new.total -= b.total
+	new.total.Set(b.total.Inverse())
 	for m, v := range b.months {
 		for i := range v {
-			new.months[m] = append(new.months[m], cellValue{amount: -v[i].amount, when: v[i].when})
+			new.months[m] = append(new.months[m], cellValue{amount: v[i].amount.Inverse(), when: v[i].when})
 		}
 	}
 	return new

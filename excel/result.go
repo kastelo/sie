@@ -8,12 +8,12 @@ import (
 
 	"dario.cat/mergo"
 	"github.com/xuri/excelize/v2"
-	"kastelo.dev/sie"
+	"kastelo.dev/sie/v2"
 )
 
 type section struct {
 	name       string
-	start, end int
+	start, end int32
 }
 
 var sections = []section{
@@ -40,7 +40,7 @@ var summaries = []summary{
 	{"Rörelseresultat", []int{0, 1, 2, 3, 4, 5}, 5},
 }
 
-var currentCapitalAccounts = []int{
+var currentCapitalAccounts = []int32{
 	2081, // aktiekapital
 	2091, // balanserat eget kapital
 	2098, // förra årets resultat
@@ -132,22 +132,22 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document, withCapita
 	_ = xlsx.SetColWidth(sheet, "B", "B", 55)
 	_ = xlsx.SetColWidth(sheet, "C", "K", 10)
 
-	sy, sm, _ := doc.Starts.Date()
-	ey, em, _ := doc.Ends.Date()
+	sy, sm, _ := doc.Starts.AsTime().Date()
+	ey, em, _ := doc.Ends.AsTime().Date()
 	numMonths := (ey-sy)*12 + int(em) - int(sm) + 1
 
 	// Eget kapital vid årets ingång
-	var inCapital sie.Decimal
+	inCapital := new(sie.Decimal)
 	for _, acc := range doc.Accounts {
-		if slices.Contains(currentCapitalAccounts, acc.ID) {
-			inCapital -= acc.InBalance
+		if slices.Contains(currentCapitalAccounts, acc.Id) {
+			inCapital.Set(inCapital.Subtracting(acc.InBalance))
 		}
 	}
 
 	style, _ := xlsx.NewStyle(defaultStyle())
 	_ = xlsx.SetCellStyle(sheet, cell('A', 1), cell('A'+rune(numMonths)+5, 1000), style)
 
-	xlsxHeaderMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends)
+	xlsxHeaderMonths(xlsx, sheet, row, "", doc.Starts.AsTime(), doc.Ends.AsTime())
 	row++
 
 	_ = xlsx.SetPanes(sheet, &excelize.Panes{
@@ -161,18 +161,18 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document, withCapita
 	accountBalance := balances(doc)
 	summarySumRows := make(map[string][]int)
 	for _, acc := range doc.Accounts {
-		bal, ok := accountBalance[acc.ID]
+		bal, ok := accountBalance[acc.Id]
 		if !ok {
 			continue
 		}
-		if bal.total == 0 {
+		if bal.total.Cents == 0 {
 			continue
 		}
 		bal = bal.inverse()
 
 		newSec := -1
 		for i, sec := range sections {
-			id := acc.ID
+			id := acc.Id
 			if sec.start <= id && id <= sec.end {
 				newSec = i
 				break
@@ -191,14 +191,14 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document, withCapita
 					}
 				}
 
-				xlsxSumMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends, startRow)
+				xlsxSumMonths(xlsx, sheet, row, "", doc.Starts.AsTime(), doc.Ends.AsTime(), startRow)
 				sumRows = append(sumRows, row)
 				row++
 
 				for _, sum := range summaries {
 					if sum.afterIdx == sec {
 						row++
-						xlsxSectionSum(xlsx, sheet, row, sum.name, doc.Starts, doc.Ends, summarySumRows[sum.name])
+						xlsxSectionSum(xlsx, sheet, row, sum.name, doc.Starts.AsTime(), doc.Ends.AsTime(), summarySumRows[sum.name])
 						row++
 					}
 				}
@@ -215,15 +215,15 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document, withCapita
 			continue
 		}
 
-		xlsxAccountMonths(xlsx, sheet, row, acc.ID, acc.Description, doc.Starts, doc.Ends, bal)
+		xlsxAccountMonths(xlsx, sheet, row, int(acc.Id), acc.Description, doc.Starts.AsTime(), doc.Ends.AsTime(), bal)
 		row++
 	}
 
-	xlsxSumMonths(xlsx, sheet, row, "", doc.Starts, doc.Ends, startRow)
+	xlsxSumMonths(xlsx, sheet, row, "", doc.Starts.AsTime(), doc.Ends.AsTime(), startRow)
 	sumRows = append(sumRows, row)
 	row++
 	row++
-	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts, doc.Ends, sumRows, withCapital, accountBalance, inCapital)
+	xlsxSumSumMonths(xlsx, sheet, row, doc.Starts.AsTime(), doc.Ends.AsTime(), sumRows, withCapital, accountBalance, inCapital)
 	row++
 	row++
 
@@ -236,7 +236,7 @@ func cell(col rune, row int) string {
 }
 
 func xlsxAccountMonths(xlsx *excelize.File, sheet string, row int, id int, descr string, starts, ends time.Time, bal *balance) {
-	_ = xlsx.SetCellInt(sheet, cell('A', row), id)
+	_ = xlsx.SetCellInt(sheet, cell('A', row), int64(id))
 	_ = xlsx.SetCellValue(sheet, cell('B', row), descr)
 	t := starts
 	col := 'C'
@@ -418,7 +418,7 @@ func sumcells(col rune, rows []int) string {
 	return b.String()
 }
 
-func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int, withCapital bool, accountBalances map[int]*balance, inCapital sie.Decimal) {
+func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends time.Time, sumRows []int, withCapital bool, accountBalances map[int32]*balance, inCapital *sie.Decimal) {
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Resultat")
 
 	// sum
@@ -474,14 +474,14 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 		_ = xlsx.SetCellValue(sheet, cell('B', row), "Eget kapital")
 		scol := 'C'
 		for t = starts; !t.After(ends); t = t.AddDate(0, 1, 0) {
-			capital := inCapital
+			capital := inCapital.Copy()
 			for _, acc := range currentCapitalAccounts {
 				bal := accountBalances[acc]
 				if bal == nil {
 					continue
 				}
 				for _, cv := range bal.months[t.Format("2006-01")] {
-					capital -= cv.amount
+					capital.Set(capital.Subtracting(cv.amount))
 				}
 			}
 
@@ -489,12 +489,12 @@ func xlsxSumSumMonths(xlsx *excelize.File, sheet string, row int, starts, ends t
 			if scol != 'C' {
 				formula += fmt.Sprintf("+%c%d", scol-1, row)
 			}
-			if capital != 0 {
+			if capital.Cents != 0 {
 				formula += fmt.Sprintf("+%v", capital)
 			}
 			_ = xlsx.SetCellFormula(sheet, cell(scol, row), formula)
 			scol++
-			inCapital = 0 // only add inCapital once
+			inCapital.Set(&sie.Decimal{Cents: 0}) // only add inCapital once
 		}
 
 		style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontItalic(), customNumberFormat()))
@@ -529,11 +529,11 @@ func sumFormula(v []cellValue) string {
 	var b strings.Builder
 	for i, d := range v {
 		switch {
-		case i > 0 && d.amount >= 0:
+		case i > 0 && d.amount.Cents >= 0:
 			b.WriteString(" + ")
-		case i > 0 && d.amount < 0:
+		case i > 0 && d.amount.Cents < 0:
 			b.WriteString(" - ")
-			d.amount = -d.amount
+			d.amount = d.amount.Inverse()
 		}
 		fmt.Fprintf(&b, "%v", d.amount.Float64())
 	}

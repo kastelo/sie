@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"os"
 
-	"kastelo.dev/sie"
-	"kastelo.dev/sie/excel"
+	"kastelo.dev/sie/v2"
+	"kastelo.dev/sie/v2/excel"
 )
 
 func main() {

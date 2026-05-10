@@ -5,13 +5,15 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestParseDecimal(t *testing.T) {
 	cases := []struct {
-		in  string
-		ok  bool
-		out Decimal
+		in    string
+		ok    bool
+		cents int64
 	}{
 		{"0", true, 0},
 		{"0.00", true, 0},
@@ -37,42 +39,42 @@ func TestParseDecimal(t *testing.T) {
 			t.Error("unexpected failure:", c.in)
 		} else if !c.ok && err == nil {
 			t.Error("unexpected success:", c.in)
-		} else if v != c.out {
-			t.Errorf("unexpected value %v != %v for %v", v, c.out, c.in)
+		} else if v.Cents != c.cents {
+			t.Errorf("unexpected value %v != %v for %v", v, c.cents, c.in)
 		}
 	}
 }
 
 func TestDocumentJSONRoundtrip(t *testing.T) {
-	doc := Document{
+	doc := &Document{
 		ProgramName:    "TestProgram",
 		ProgramVersion: "1.0",
-		GeneratedAt:    time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC),
+		GeneratedAt:    timestamppb.New(time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)),
 		GeneratedBy:    "tester",
 		Type:           "E",
 		OrgNo:          "556677-8899",
 		CompanyName:    "Test AB",
 		AccountPlan:    "BAS2024",
-		Accounts: []Account{
-			{ID: 1910, Type: "T", Description: "Kassa", InBalance: 150000, OutBalance: 175050},
-			{ID: 3000, Type: "I", Description: "Intäkter", InBalance: 0, OutBalance: -250075},
+		Accounts: []*Account{
+			{Id: 1910, Type: "T", Description: "Kassa", InBalance: &Decimal{Cents: 150000}, OutBalance: &Decimal{Cents: 175050}},
+			{Id: 3000, Type: "I", Description: "Intäkter", InBalance: &Decimal{Cents: 0}, OutBalance: &Decimal{Cents: -250075}},
 		},
-		Entries: []Entry{
+		Entries: []*Entry{
 			{
-				ID:          "1",
+				Id:          "1",
 				Type:        "V",
-				Date:        time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+				Date:        timestamppb.New(time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)),
 				Description: "Försäljning",
-				Filed:       time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
-				Transactions: []Transaction{
-					{AccountID: 1910, Amount: 25050, Annotations: []Annotation{{Tag: 1, Text: "proj1", Description: "Projekt 1"}}},
-					{AccountID: 3000, Amount: -25050},
+				Filed:       timestamppb.New(time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)),
+				Transactions: []*Transaction{
+					{AccountId: 1910, Amount: &Decimal{Cents: 25050}, Annotations: []*Annotation{{Tag: 1, Text: "proj1", Description: "Projekt 1"}}},
+					{AccountId: 3000, Amount: &Decimal{Cents: -25050}},
 				},
 			},
 		},
-		Starts:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-		Ends:        time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
-		Annotations: []Annotation{{Tag: 1, Text: "proj1", Description: "Projekt 1"}},
+		Starts:      timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+		Ends:        timestamppb.New(time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)),
+		Annotations: []*Annotation{{Tag: 1, Text: "proj1", Description: "Projekt 1"}},
 	}
 
 	data, err := json.Marshal(doc)
@@ -85,30 +87,31 @@ func TestDocumentJSONRoundtrip(t *testing.T) {
 		t.Fatal("unmarshal:", err)
 	}
 
-	if !reflect.DeepEqual(doc, got) {
-		t.Errorf("roundtrip mismatch\n got: %+v\nwant: %+v", got, doc)
+	if !reflect.DeepEqual(doc, &got) {
+		t.Errorf("roundtrip mismatch\n got: %+v\nwant: %+v", &got, doc)
 	}
 }
 
 func TestDecimalJSONValues(t *testing.T) {
 	cases := []struct {
-		dec  Decimal
+		dec  int64
 		json string
 	}{
-		{0, "0"},
-		{100, "1"},
+		{0, "0.00"},
+		{100, "1.00"},
 		{150, "1.50"},
 		{-150, "-1.50"},
 		{25050, "250.50"},
 		{-25050, "-250.50"},
-		{1000000, "10000"},
-		{-1000000, "-10000"},
+		{1000000, "10000.00"},
+		{-1000000, "-10000.00"},
 	}
 
 	for _, c := range cases {
-		data, err := json.Marshal(c.dec)
+		dec := &Decimal{Cents: c.dec}
+		data, err := json.Marshal(dec)
 		if err != nil {
-			t.Errorf("marshal %v: %v", c.dec, err)
+			t.Errorf("marshal %v: %v", dec, err)
 			continue
 		}
 		if string(data) != c.json {
@@ -120,8 +123,8 @@ func TestDecimalJSONValues(t *testing.T) {
 			t.Errorf("unmarshal %s: %v", data, err)
 			continue
 		}
-		if got != c.dec {
-			t.Errorf("unmarshal %s: got %v, want %v", data, got, c.dec)
+		if got.Cents != c.dec {
+			t.Errorf("unmarshal %s: got %v, want %v", data, &got, c.dec)
 		}
 	}
 }

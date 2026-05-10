@@ -1,0 +1,10 @@
+version: v2
+modules:
+  - path: .
+    name: github.com/kastelo/sie
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - WIRE_JSON

@@ -1,0 +1,16 @@
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/go:v1.36.11
+    out: .
+    opt: module=kastelo.dev/sie
+  - remote: buf.build/grpc/go:v1.5.1
+    out: .
+    opt:
+      - module=kastelo.dev/sie
+      - require_unimplemented_servers=false
+  - remote: buf.build/connectrpc/go:v1.18.1
+    out: .
+    opt:
+      - module=kastelo.dev/sie
+inputs:
+  - directory: .

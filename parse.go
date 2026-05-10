@@ -11,14 +11,15 @@ import (
 	"time"
 
 	"golang.org/x/text/encoding/charmap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func Parse(r io.Reader) (*Document, error) {
 	r = charmap.CodePage437.NewDecoder().Reader(r)
 
 	var doc Document
-	var curVer Entry
-	accountCache := make(map[int]int)
+	var curVer *Entry
+	accountCache := make(map[int32]int)
 
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {
@@ -38,7 +39,7 @@ func Parse(r io.Reader) (*Document, error) {
 				if err != nil {
 					return nil, err
 				}
-				doc.GeneratedAt = date
+				doc.GeneratedAt = timestamppb.New(date)
 			}
 			if len(words) >= 3 {
 				doc.GeneratedBy = words[2]
@@ -56,19 +57,21 @@ func Parse(r io.Reader) (*Document, error) {
 		case "#RAR":
 			if words[1] == "0" {
 				// Current fiscal year
-				doc.Starts, _ = time.Parse("20060102", words[2])
-				doc.Ends, _ = time.Parse("20060102", words[3])
+				s, _ := time.Parse("20060102", words[2])
+				doc.Starts = timestamppb.New(s)
+				e, _ := time.Parse("20060102", words[3])
+				doc.Ends = timestamppb.New(e)
 			}
 
 		case "#KPTYP":
 			doc.AccountPlan = words[1]
 
 		case "#KONTO":
-			acc := Account{
-				ID:          tryParseInt(words[1]),
+			acc := &Account{
+				Id:          tryParseInt(words[1]),
 				Description: words[2],
 			}
-			accountCache[acc.ID] = len(doc.Accounts)
+			accountCache[acc.GetId()] = len(doc.Accounts)
 			doc.Accounts = append(doc.Accounts, acc)
 
 		case "#KTYP":
@@ -118,22 +121,22 @@ func Parse(r io.Reader) (*Document, error) {
 			if err != nil {
 				return nil, err
 			}
-			curVer = Entry{
-				ID:          words[2],
+			curVer = &Entry{
+				Id:          words[2],
 				Type:        words[1],
-				Date:        date,
+				Date:        timestamppb.New(date),
 				Description: words[4],
-				Filed:       filed,
+				Filed:       timestamppb.New(filed),
 			}
-			if doc.Starts.IsZero() || doc.Starts.After(date) {
-				doc.Starts = date
+			if !doc.Starts.IsValid() || doc.Starts.AsTime().After(date) {
+				doc.Starts = timestamppb.New(date)
 			}
-			if doc.Ends.IsZero() || doc.Ends.Before(date) {
-				doc.Ends = date
+			if !doc.Ends.IsValid() || doc.Ends.AsTime().Before(date) {
+				doc.Ends = timestamppb.New(date)
 			}
 
 		case "#TRANS":
-			var annotations []Annotation
+			var annotations []*Annotation
 			if words[2] != "" {
 				// There's an annotation
 				parts := strings.Split(words[2], " ")
@@ -141,9 +144,9 @@ func Parse(r io.Reader) (*Document, error) {
 					return nil, fmt.Errorf("annotation has odd number of parts")
 				}
 				for i := 0; i < len(parts); i += 2 {
-					tagNo, _ := strconv.Atoi(maybeUnquote(parts[i]))
+					tagNo := tryParseInt(maybeUnquote(parts[i]))
 					text := maybeUnquote(parts[i+1])
-					annotations = append(annotations, Annotation{Tag: tagNo, Text: text})
+					annotations = append(annotations, &Annotation{Tag: tagNo, Text: text})
 				}
 			}
 			amount, err := ParseDecimal(words[3])
@@ -151,41 +154,41 @@ func Parse(r io.Reader) (*Document, error) {
 				return nil, err
 			}
 			accID := tryParseInt(words[1])
-			trans := Transaction{
-				AccountID:   accID,
+			trans := &Transaction{
+				AccountId:   accID,
 				Amount:      amount,
 				Annotations: annotations,
 			}
 			curVer.Transactions = append(curVer.Transactions, trans)
 
 		case "#OBJEKT":
-			tag, _ := strconv.Atoi(words[1])
+			tag := tryParseInt(words[1])
 			text := words[2]
 			description := words[3]
-			doc.Annotations = append(doc.Annotations, Annotation{Tag: tag, Text: text, Description: description})
+			doc.Annotations = append(doc.Annotations, &Annotation{Tag: tag, Text: text, Description: description})
 
 		case "}":
 			var tot Decimal
 			for _, t := range curVer.Transactions {
-				tot += t.Amount
+				tot.Cents += t.Amount.Cents
 			}
-			if tot != 0 {
-				return nil, fmt.Errorf("unbalanced voucher %v: %v", curVer, tot)
+			if tot.Cents != 0 {
+				return nil, fmt.Errorf("unbalanced voucher %v: %v", curVer, &tot)
 			}
 			doc.Entries = append(doc.Entries, curVer)
 		}
 	}
 
-	slices.SortFunc(doc.Accounts, func(a, b Account) int {
-		return cmp.Compare(a.ID, b.ID)
+	slices.SortFunc(doc.Accounts, func(a, b *Account) int {
+		return cmp.Compare(a.Id, b.Id)
 	})
-	slices.SortFunc(doc.Entries, func(a, b Entry) int {
-		if d := cmp.Compare(a.Date.Unix(), b.Date.Unix()); d != 0 {
+	slices.SortFunc(doc.Entries, func(a, b *Entry) int {
+		if d := cmp.Compare(a.Date.GetSeconds(), b.Date.GetSeconds()); d != 0 {
 			return d
 		}
-		return cmp.Compare(a.ID, b.ID)
+		return cmp.Compare(a.Id, b.Id)
 	})
-	slices.SortFunc(doc.Annotations, func(a, b Annotation) int {
+	slices.SortFunc(doc.Annotations, func(a, b *Annotation) int {
 		if d := cmp.Compare(a.Tag, b.Tag); d != 0 {
 			return d
 		}
@@ -205,7 +208,7 @@ func maybeUnquote(s string) string {
 	return s
 }
 
-func tryParseInt(s string) int {
+func tryParseInt(s string) int32 {
 	i, _ := strconv.Atoi(s)
-	return i
+	return int32(i)
 }
