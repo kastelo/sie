@@ -44,7 +44,7 @@ func BalanceXLSX(doc *sie.Document) ([]byte, error) {
 func writeBalanceSheet(xlsx *excelize.File, sheet string, doc *sie.Document) {
 	state := 0
 	var inSum, outSum sie.Decimal
-	var assets, liabilities sie.Decimal
+	var assetsIn, assetsOut, liabilities, equityIn, equityOut sie.Decimal
 	row := 1
 
 loop:
@@ -117,9 +117,14 @@ loop:
 
 		switch state {
 		case 1:
-			assets += acc.OutBalance
+			assetsIn += acc.InBalance
+			assetsOut += acc.OutBalance
 		case 2:
 			liabilities += acc.OutBalance
+			if acc.ID >= 2000 && acc.ID <= 2099 {
+				equityIn += acc.InBalance
+				equityOut += acc.OutBalance
+			}
 		}
 
 		_ = xlsx.SetCellValue(sheet, cell('A', row), acc.ID)
@@ -136,7 +141,7 @@ loop:
 		_ = xlsx.SetCellStyle(sheet, cell('C', row), cell('E', row), style)
 	}
 
-	result := assets + liabilities
+	result := assetsOut + liabilities
 
 	style, _ := xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thickBorder("bottom")))
 	_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('E', row), style)
@@ -145,7 +150,25 @@ loop:
 	_ = xlsx.SetCellValue(sheet, cell('A', row), "")
 	_ = xlsx.SetCellValue(sheet, cell('B', row), "Beräknat resultat")
 	_ = xlsx.SetCellValue(sheet, cell('E', row), result.Float64())
-	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat(), thickBorder("bottom")))
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), customNumberFormat()))
+	_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('E', row), style)
+	row++
+
+	// Soliditet = equity / total assets. Equity accounts (2000-2099) carry
+	// a credit balance, so we negate. For the closing balance, the period
+	// result is added on top since it isn't yet booked to equity.
+	totalEquityIn := -equityIn
+	totalEquityOut := -equityOut + result
+	_ = xlsx.SetCellValue(sheet, cell('A', row), "")
+	_ = xlsx.SetCellValue(sheet, cell('B', row), "Soliditet")
+	if assetsIn != 0 {
+		_ = xlsx.SetCellValue(sheet, cell('C', row), totalEquityIn.Float64()/assetsIn.Float64())
+	}
+	if assetsOut != 0 {
+		_ = xlsx.SetCellValue(sheet, cell('E', row), totalEquityOut.Float64()/assetsOut.Float64())
+	}
+	pctFmt := "0.0%"
+	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle(), fontBold(), thickBorder("bottom"), &excelize.Style{CustomNumFmt: &pctFmt}))
 	_ = xlsx.SetCellStyle(sheet, cell('A', row), cell('E', row), style)
 
 	style, _ = xlsx.NewStyle(mergeStyles(defaultStyle()))
