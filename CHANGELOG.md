@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.15.0](https://github.com/kastelo/sie/compare/v1.14.2...v1.15.0) (2026-06-04)
+
+
+### Features
+
+* solvency ratio (soliditet) ([fcb4ee1](https://github.com/kastelo/sie/commit/fcb4ee10087cc63c5e4cf0a1537bba0b829abde6))
+
+
+### Bug Fixes
+
+* error on unbalanced vouchers ([6064391](https://github.com/kastelo/sie/commit/60643915fda24892c9f50a7655ffeb0f78394166))
+
 ## [1.14.2](https://github.com/kastelo/sie/compare/v1.14.1...v1.14.2) (2026-03-07)
 
 
