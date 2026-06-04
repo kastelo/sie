@@ -14,18 +14,21 @@ import (
 type section struct {
 	name       string
 	start, end int
+	// accounts that belong to this section regardless of the start/end
+	// range; takes priority over the range matching of other sections
+	include []int
 }
 
 var sections = []section{
-	{"Nettoomsättning", 3000, 3799},
-	{"Aktiverat arbete för egen räkning", 3800, 3899},
-	{"Övriga rörelseintäkter", 3900, 3999},
-	{"Varukostnader", 4000, 4999},
-	{"Externa kostnader", 5000, 6999},
-	{"Personalkostnader", 7000, 7699},
-	{"Av- och nedskrivningar", 7700, 7899},
-	{"Övriga rörelsekostnader", 7900, 7999},
-	{"Finansiella poster", 8000, 8998},
+	{"Nettoomsättning", 3000, 3799, []int{6350}}, // kundförluster
+	{"Aktiverat arbete för egen räkning", 3800, 3899, nil},
+	{"Övriga rörelseintäkter", 3900, 3999, nil},
+	{"Varukostnader", 4000, 4999, nil},
+	{"Externa kostnader", 5000, 6999, nil},
+	{"Personalkostnader", 7000, 7699, nil},
+	{"Av- och nedskrivningar", 7700, 7899, nil},
+	{"Övriga rörelsekostnader", 7900, 7999, nil},
+	{"Finansiella poster", 8000, 8998, nil},
 }
 
 type summary struct {
@@ -171,11 +174,19 @@ func writeSheet(xlsx *excelize.File, sheet string, doc *sie.Document, withCapita
 		bal = bal.inverse()
 
 		newSec := -1
+		id := acc.ID
 		for i, sec := range sections {
-			id := acc.ID
-			if sec.start <= id && id <= sec.end {
+			if slices.Contains(sec.include, id) {
 				newSec = i
 				break
+			}
+		}
+		if newSec == -1 {
+			for i, sec := range sections {
+				if sec.start <= id && id <= sec.end {
+					newSec = i
+					break
+				}
 			}
 		}
 
