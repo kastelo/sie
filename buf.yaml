@@ -1,0 +1,13 @@
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+  except:
+    # The proto lives flat under proto/ rather than proto/sie/v1/, so the
+    # directory doesn't mirror the package path.
+    - PACKAGE_DIRECTORY_MATCH
+breaking:
+  use:
+    - FILE

@@ -1,17 +1,18 @@
 package sie
 
 import (
-	"encoding/json"
-	"reflect"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestParseDecimal(t *testing.T) {
 	cases := []struct {
 		in  string
 		ok  bool
-		out Decimal
+		out int64 // cents
 	}{
 		{"0", true, 0},
 		{"0.00", true, 0},
@@ -37,91 +38,82 @@ func TestParseDecimal(t *testing.T) {
 			t.Error("unexpected failure:", c.in)
 		} else if !c.ok && err == nil {
 			t.Error("unexpected success:", c.in)
-		} else if v != c.out {
-			t.Errorf("unexpected value %v != %v for %v", v, c.out, c.in)
+		} else if err == nil && v.GetCents() != c.out {
+			t.Errorf("unexpected value %v != %v for %v", v.GetCents(), c.out, c.in)
 		}
 	}
 }
 
-func TestDocumentJSONRoundtrip(t *testing.T) {
-	doc := Document{
-		ProgramName:    "TestProgram",
-		ProgramVersion: "1.0",
-		GeneratedAt:    time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC),
-		GeneratedBy:    "tester",
-		Type:           "E",
-		OrgNo:          "556677-8899",
-		CompanyName:    "Test AB",
-		AccountPlan:    "BAS2024",
-		Accounts: []Account{
-			{ID: 1910, Type: "T", Description: "Kassa", InBalance: 150000, OutBalance: 175050},
-			{ID: 3000, Type: "I", Description: "Intäkter", InBalance: 0, OutBalance: -250075},
+func TestDocumentProtoRoundtrip(t *testing.T) {
+	doc := &Document{
+		ProgramName:        "TestProgram",
+		ProgramVersion:     "1.0",
+		GeneratedAt:        timestamppb.New(time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)),
+		GeneratedBy:        "tester",
+		SieType:            SieType_SIE_TYPE_TRANSACTIONS,
+		OrganisationNumber: "556677-8899",
+		CompanyName:        "Test AB",
+		ChartOfAccounts:    "BAS2024",
+		Accounts: []*Account{
+			{Number: 1910, Type: AccountType_ACCOUNT_TYPE_ASSET, Name: "Kassa", OpeningBalance: NewDecimal(150000), ClosingBalance: NewDecimal(175050)},
+			{Number: 3000, Type: AccountType_ACCOUNT_TYPE_INCOME, Name: "Intäkter", OpeningBalance: NewDecimal(0), ClosingBalance: NewDecimal(-250075)},
 		},
-		Entries: []Entry{
+		Vouchers: []*Voucher{
 			{
-				ID:          "1",
-				Type:        "V",
-				Date:        time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
-				Description: "Försäljning",
-				Filed:       time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
-				Transactions: []Transaction{
-					{AccountID: 1910, Amount: 25050, Annotations: []Annotation{{Tag: 1, Text: "proj1", Description: "Projekt 1"}}},
-					{AccountID: 3000, Amount: -25050},
+				Number:         "1",
+				Series:         "V",
+				Date:           timestamppb.New(time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)),
+				Description:    "Försäljning",
+				RegisteredDate: timestamppb.New(time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)),
+				Postings: []*Posting{
+					{AccountNumber: 1910, Amount: NewDecimal(25050), Dimensions: []*Dimension{{Number: 1, ObjectCode: "proj1", Name: "Projekt 1"}}},
+					{AccountNumber: 3000, Amount: NewDecimal(-25050)},
 				},
 			},
 		},
-		Starts:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-		Ends:        time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
-		Annotations: []Annotation{{Tag: 1, Text: "proj1", Description: "Projekt 1"}},
+		FinancialYearStart: timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+		FinancialYearEnd:   timestamppb.New(time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)),
+		Dimensions:         []*Dimension{{Number: 1, ObjectCode: "proj1", Name: "Projekt 1"}},
 	}
 
-	data, err := json.Marshal(doc)
+	data, err := proto.Marshal(doc)
 	if err != nil {
 		t.Fatal("marshal:", err)
 	}
 
 	var got Document
-	if err := json.Unmarshal(data, &got); err != nil {
+	if err := proto.Unmarshal(data, &got); err != nil {
 		t.Fatal("unmarshal:", err)
 	}
 
-	if !reflect.DeepEqual(doc, got) {
-		t.Errorf("roundtrip mismatch\n got: %+v\nwant: %+v", got, doc)
+	if !proto.Equal(doc, &got) {
+		t.Errorf("roundtrip mismatch\n got: %v\nwant: %v", &got, doc)
 	}
 }
 
-func TestDecimalJSONValues(t *testing.T) {
+func TestDecimalFormat(t *testing.T) {
 	cases := []struct {
-		dec  Decimal
-		json string
+		cents    int64
+		float    float64
+		floatStr string // FloatString(2)
 	}{
-		{0, "0"},
-		{100, "1"},
-		{150, "1.50"},
-		{-150, "-1.50"},
-		{25050, "250.50"},
-		{-25050, "-250.50"},
-		{1000000, "10000"},
-		{-1000000, "-10000"},
+		{0, 0, "0.00"},
+		{100, 1, "1.00"},
+		{150, 1.5, "1.50"},
+		{-150, -1.5, "-1.50"},
+		{25050, 250.5, "250.50"},
+		{-25050, -250.5, "-250.50"},
+		{1000000, 10000, "10000.00"},
+		{-1000000, -10000, "-10000.00"},
 	}
 
 	for _, c := range cases {
-		data, err := json.Marshal(c.dec)
-		if err != nil {
-			t.Errorf("marshal %v: %v", c.dec, err)
-			continue
+		d := NewDecimal(c.cents)
+		if got := d.Float64(); got != c.float {
+			t.Errorf("Float64(%d) = %v, want %v", c.cents, got, c.float)
 		}
-		if string(data) != c.json {
-			t.Errorf("marshal %v: got %s, want %s", c.dec, data, c.json)
-		}
-
-		var got Decimal
-		if err := json.Unmarshal(data, &got); err != nil {
-			t.Errorf("unmarshal %s: %v", data, err)
-			continue
-		}
-		if got != c.dec {
-			t.Errorf("unmarshal %s: got %v, want %v", data, got, c.dec)
+		if got := d.FloatString(2); got != c.floatStr {
+			t.Errorf("FloatString(%d) = %q, want %q", c.cents, got, c.floatStr)
 		}
 	}
 }

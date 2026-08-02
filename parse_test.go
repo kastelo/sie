@@ -7,57 +7,62 @@ import (
 	"time"
 
 	godiffpatch "github.com/sourcegraph/go-diff-patch"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func ts(y int, m time.Month, d int) *timestamppb.Timestamp {
+	return timestamppb.New(time.Date(y, m, d, 0, 0, 0, 0, time.UTC))
+}
 
 func TestParse(t *testing.T) {
 	expected := &Document{
-		ProgramName:    "SpeedLedger e-bokföring",
-		ProgramVersion: "2.0",
-		GeneratedAt:    time.Date(2017, 3, 5, 0, 0, 0, 0, time.UTC),
-		GeneratedBy:    "Jakob Borg",
-		Type:           "4",
-		OrgNo:          "123456-7890",
-		CompanyName:    "Kastelo AB",
-		AccountPlan:    "EUBAS97",
-		Starts:         time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC),
-		Ends:           time.Date(2016, 12, 31, 0, 0, 0, 0, time.UTC),
-		Accounts: []Account{
+		ProgramName:        "SpeedLedger e-bokföring",
+		ProgramVersion:     "2.0",
+		GeneratedAt:        ts(2017, 3, 5),
+		GeneratedBy:        "Jakob Borg",
+		SieType:            SieType_SIE_TYPE_TRANSACTIONS,
+		OrganisationNumber: "123456-7890",
+		CompanyName:        "Kastelo AB",
+		ChartOfAccounts:    "EUBAS97",
+		FinancialYearStart: ts(2016, 1, 1),
+		FinancialYearEnd:   ts(2016, 12, 31),
+		Accounts: []*Account{
 			{
-				ID: 1930, Type: "T", Description: "Bankkonto",
-				InBalance:  0,
-				OutBalance: 48043 * 100,
+				Number: 1930, Type: AccountType_ACCOUNT_TYPE_ASSET, Name: "Bankkonto",
+				OpeningBalance: NewDecimal(0),
+				ClosingBalance: NewDecimal(48043 * 100),
 			},
 			{
-				ID: 2081, Type: "S", Description: "Aktiekapital",
-				InBalance:  0,
-				OutBalance: -50000 * 100,
+				Number: 2081, Type: AccountType_ACCOUNT_TYPE_LIABILITY, Name: "Aktiekapital",
+				OpeningBalance: NewDecimal(0),
+				ClosingBalance: NewDecimal(-50000 * 100),
 			},
 			{
-				ID: 6310, Type: "K", Description: "Försäkringar",
-				InBalance:  0,
-				OutBalance: 1957 * 100,
+				Number: 6310, Type: AccountType_ACCOUNT_TYPE_EXPENSE, Name: "Försäkringar",
+				OpeningBalance: NewDecimal(0),
+				ClosingBalance: NewDecimal(1957 * 100),
 			},
 		},
-		Entries: []Entry{
+		Vouchers: []*Voucher{
 			{
-				Type:        "A",
-				ID:          "1",
-				Date:        time.Date(2016, 1, 2, 0, 0, 0, 0, time.UTC),
-				Filed:       time.Date(2016, 1, 3, 0, 0, 0, 0, time.UTC),
-				Description: "Aktiekapital",
-				Transactions: []Transaction{
-					{AccountID: 1930, Annotations: []Annotation{{Tag: 2, Text: "FOO"}}, Amount: 50000 * 100},
-					{AccountID: 2081, Annotations: []Annotation{{Tag: 3, Text: "BAR"}}, Amount: -50000 * 100},
+				Series:         "A",
+				Number:         "1",
+				Date:           ts(2016, 1, 2),
+				RegisteredDate: ts(2016, 1, 3),
+				Description:    "Aktiekapital",
+				Postings: []*Posting{
+					{AccountNumber: 1930, Dimensions: []*Dimension{{Number: 2, ObjectCode: "FOO"}}, Amount: NewDecimal(50000 * 100)},
+					{AccountNumber: 2081, Dimensions: []*Dimension{{Number: 3, ObjectCode: "BAR"}}, Amount: NewDecimal(-50000 * 100)},
 				},
 			}, {
-				Type:        "A",
-				ID:          "2",
-				Date:        time.Date(2016, 8, 29, 0, 0, 0, 0, time.UTC),
-				Filed:       time.Date(2016, 8, 30, 0, 0, 0, 0, time.UTC),
-				Description: "Försäkring F",
-				Transactions: []Transaction{
-					{AccountID: 1930, Amount: -1957 * 100},
-					{AccountID: 6310, Amount: 1957 * 100},
+				Series:         "A",
+				Number:         "2",
+				Date:           ts(2016, 8, 29),
+				RegisteredDate: ts(2016, 8, 30),
+				Description:    "Försäkring F",
+				Postings: []*Posting{
+					{AccountNumber: 1930, Amount: NewDecimal(-1957 * 100)},
+					{AccountNumber: 6310, Amount: NewDecimal(1957 * 100)},
 				},
 			},
 		},
@@ -77,7 +82,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func jsons(v interface{}) string {
+func jsons(v any) string {
 	bs, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		panic(err)

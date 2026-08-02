@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package sie.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "kastelo.dev/sie/v2;sie";
+
+// Decimal is a fixed-point monetary amount stored as an integer number of
+// hundredths ("cents"). Money can't be represented exactly as a float, so we
+// keep the underlying int64 and add convenience conversions on top (see the
+// hand-written methods in the generated package).
+message Decimal {
+  int64 cents = 1;
+}
+
+// SieType is the SIE format type/level (#SIETYP). The values match the numeric
+// SIE codes 1-4.
+enum SieType {
+  SIE_TYPE_UNSPECIFIED = 0;
+  // Year-end account balances (1).
+  SIE_TYPE_YEAR_END_BALANCES = 1;
+  // Period account balances (2).
+  SIE_TYPE_PERIOD_BALANCES = 2;
+  // Period balances broken down by object/dimension (3).
+  SIE_TYPE_OBJECT_BALANCES = 3;
+  // Full transactions (4).
+  SIE_TYPE_TRANSACTIONS = 4;
+}
+
+// AccountType is the account classification (#KTYP).
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  // Asset (SIE code "T", tillgång).
+  ACCOUNT_TYPE_ASSET = 1;
+  // Liability, including equity (SIE code "S", skuld).
+  ACCOUNT_TYPE_LIABILITY = 2;
+  // Expense (SIE code "K", kostnad).
+  ACCOUNT_TYPE_EXPENSE = 3;
+  // Income (SIE code "I", intäkt).
+  ACCOUNT_TYPE_INCOME = 4;
+}
+
+// Document is a parsed SIE file: company metadata, its chart of accounts and
+// the vouchers within the covered financial year.
+message Document {
+  string program_name = 1;
+  string program_version = 2;
+  google.protobuf.Timestamp generated_at = 3;
+  string generated_by = 4;
+  // SIE format type/level (#SIETYP).
+  SieType sie_type = 5;
+  // Company registration number (#ORGNR).
+  string organisation_number = 6;
+  string company_name = 7;
+  // Chart-of-accounts standard (#KPTYP), e.g. "EUBAS97".
+  string chart_of_accounts = 8;
+  repeated Account accounts = 9;
+  repeated Voucher vouchers = 10;
+  google.protobuf.Timestamp financial_year_start = 11;
+  google.protobuf.Timestamp financial_year_end = 12;
+  repeated Dimension dimensions = 13;
+}
+
+// Account is a single account in the chart of accounts, with its opening and
+// closing balances for the covered financial year.
+message Account {
+  int32 number = 1;
+  // Account classification (#KTYP).
+  AccountType type = 2;
+  string name = 3;
+  Decimal opening_balance = 4;
+  Decimal closing_balance = 5;
+}
+
+// Voucher is a dated, balanced set of postings (#VER).
+message Voucher {
+  // Number within the series.
+  string number = 1;
+  // Voucher series (#VER), e.g. "A".
+  string series = 2;
+  // Accounting date.
+  google.protobuf.Timestamp date = 3;
+  string description = 4;
+  // Date the voucher was recorded (regdatum).
+  google.protobuf.Timestamp registered_date = 5;
+  repeated Posting postings = 6;
+}
+
+// Posting is a single amount booked against an account within a voucher.
+message Posting {
+  int32 account_number = 1;
+  repeated Dimension dimensions = 2;
+  Decimal amount = 3;
+}
+
+// Dimension is an accounting object (#OBJEKT) — e.g. a cost centre or project —
+// attached to a posting, or a dimension definition at document level.
+message Dimension {
+  // Dimension number.
+  int32 number = 1;
+  // Object identifier within the dimension.
+  string object_code = 2;
+  // Object display name.
+  string name = 3;
+}
