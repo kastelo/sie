@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0](https://github.com/kastelo/sie/compare/v1.15.0...v2.0.0) (2026-08-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* use protobuf generated types, more idiomatic naming
+
+### Features
+
+* additional Decimal helpers ([cea2325](https://github.com/kastelo/sie/commit/cea2325dfde111e9332f36a1920f65576fe4efeb))
+* use protobuf generated types, more idiomatic naming ([ffc790f](https://github.com/kastelo/sie/commit/ffc790f35012bdd151f715dd541baeb33c20955f))
+
 ## [1.15.0](https://github.com/kastelo/sie/compare/v1.14.2...v1.15.0) (2026-06-04)
 
 
