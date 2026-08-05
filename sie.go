@@ -43,6 +43,21 @@ func (d *Decimal) Neg() *Decimal {
 	return &Decimal{Cents: -d.GetCents()}
 }
 
+// Copy returns a copy of the Decimal
+func (d *Decimal) Copy() *Decimal {
+	return &Decimal{Cents: d.GetCents()}
+}
+
+// AddFloat returns the sum of d and v as a new Decimal.
+func (d *Decimal) AddFloat(v float64) *Decimal {
+	return &Decimal{Cents: d.GetCents() + int64(v*100)}
+}
+
+// MulFloat returns the product of d and v as a new Decimal.
+func (d *Decimal) MulFloat(v float64) *Decimal {
+	return &Decimal{Cents: d.GetCents() * int64(v*100)}
+}
+
 // IsZero reports whether d represents zero (including a nil Decimal).
 func (d *Decimal) IsZero() bool {
 	return d.GetCents() == 0
