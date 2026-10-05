@@ -51,8 +51,8 @@ func TestParse(t *testing.T) {
 				RegisteredDate: ts(2016, 1, 3),
 				Description:    "Aktiekapital",
 				Postings: []*Posting{
-					{AccountNumber: 1930, Dimensions: []*Dimension{{Number: 2, ObjectCode: "FOO"}}, Amount: NewDecimal(50000 * 100)},
-					{AccountNumber: 2081, Dimensions: []*Dimension{{Number: 3, ObjectCode: "BAR"}}, Amount: NewDecimal(-50000 * 100)},
+					{AccountNumber: 1930, Dimensions: []*Dimension{{Number: 2, ObjectCode: "FOO"}}, Amount: NewDecimal(50000 * 100), Description: "Aktiekapital"},
+					{AccountNumber: 2081, Dimensions: []*Dimension{{Number: 3, ObjectCode: "BAR"}}, Amount: NewDecimal(-50000 * 100), Description: "Aktiekapital"},
 				},
 			}, {
 				Series:         "A",
@@ -61,8 +61,8 @@ func TestParse(t *testing.T) {
 				RegisteredDate: ts(2016, 8, 30),
 				Description:    "Försäkring F",
 				Postings: []*Posting{
-					{AccountNumber: 1930, Amount: NewDecimal(-1957 * 100)},
-					{AccountNumber: 6310, Amount: NewDecimal(1957 * 100)},
+					{AccountNumber: 1930, Amount: NewDecimal(-1957 * 100), Description: "Försäkring F"},
+					{AccountNumber: 6310, Amount: NewDecimal(1957 * 100), Description: "Försäkring F"},
 				},
 			},
 		},

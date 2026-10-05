@@ -92,6 +92,7 @@ message Posting {
   int32 account_number = 1;
   repeated Dimension dimensions = 2;
   Decimal amount = 3;
+  string description = 4;
 }
 
 // Dimension is an accounting object (#OBJEKT) — e.g. a cost centre or project —

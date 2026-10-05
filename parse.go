@@ -162,6 +162,9 @@ func Parse(r io.Reader) (*Document, error) {
 				Amount:        amount,
 				Dimensions:    dimensions,
 			}
+			if len(words) > 5 {
+				posting.Description = words[5]
+			}
 			curVoucher.Postings = append(curVoucher.Postings, posting)
 
 		case "#OBJEKT":
